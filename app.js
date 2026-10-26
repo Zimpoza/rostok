@@ -1,6 +1,6 @@
 (function () {
   'use strict';
-  var APP_VERSION = '2.1';
+  var APP_VERSION = '2.2';
   var P = window.PLAN, COURSES = window.COURSES;
   var DOW = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
   var DOWF = ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота', 'Воскресенье'];
@@ -146,7 +146,7 @@
   // ---------- экран ----------
   var today = rawToday(), sel = clamp(today);
   var V = { tab: 'today', page: null, course: null, step: null };
-  var EX = null, CARDS = null, pendingDel = null;
+  var EX = null, LS = null, CARDS = null, pendingDel = null;
   try { var h0 = location.hash.slice(1); if (h0 === 'learn' || h0 === 'growth') V.tab = h0; } catch (e) {}
   var app = document.getElementById('app');
 
@@ -323,12 +323,66 @@
       if (x === 'locked') h += '<div class="pl">Откроется после экзамена по прошлому блоку.</div>';
       else {
         var prompt = c.prompt.replace('{n}', n).replace('{t}', s.t).replace('{plan}', s.plan || '').replace('{words}', (s.words || []).map(function (w) { return w[0] + ' — ' + w[2]; }).join(', ') || 'на твой выбор');
-        h += claudeLink(prompt, 'Начать урок с Claude', 'primary block') +
+        if (s.ex && s.theory) {
+          h += '<button class="btn primary block" data-lopen="' + c.id + ':' + i + '">' + (x === 'done' ? 'Повторить урок' : 'Начать урок') + '</button>' +
+            claudeLink(prompt, 'Разобрать с Claude', 'block') +
+            (x === 'done' ? '<button class="btn block" data-lesson="' + s.id + '">Снять отметку</button>' : '');
+        } else {
+          h += claudeLink(prompt, 'Начать урок с Claude', 'primary block') +
           '<div class="pl" style="font-size:12.5px;opacity:.75">Кнопка скопирует задание урока и откроет Claude. Вставь его в чат.</div>' +
           (x === 'done' ? '<button class="btn block" data-lesson="' + s.id + '">Снять отметку</button>' : '<button class="btn block" data-lesson="' + s.id + '">Урок пройден</button>');
+        }
       }
     }
     return h + '</div>';
+  }
+
+  // ----- Урок внутри приложения -----
+  function md(s) { return esc(s).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>'); }
+  function startLesson(cid, i) {
+    var c = course(cid), s = c.steps[i];
+    var qs = s.ex.map(function (q) {
+      var idx = shuffle(q.options.map(function (x, j) { return j; }));
+      return { q: q.q, options: idx.map(function (j) { return q.options[j]; }), right: idx.indexOf(0), pick: null };
+    });
+    LS = { cid: cid, i: i, qs: qs };
+    V.page = 'lesson'; render(); window.scrollTo(0, 0);
+  }
+  function viewLesson() {
+    var c = course(LS.cid), s = c.steps[LS.i], th = s.theory, col = 'var(--c-' + c.cat + ')';
+    var answered = LS.qs.filter(function (q) { return q.pick != null; }).length, n = LS.qs.length;
+    var okN = LS.qs.filter(function (q) { return q.pick === q.right; }).length;
+    var h = '<section class="view"><button class="back" data-act="endlesson">‹ ' + esc(c.name) + '</button>' +
+      '<div class="title"><div class="eyebrow">' + (c.unit === 'правило' ? 'Правило ' : 'Урок ') + lessonNo(c, LS.i) + '</div><h1 class="h1">' + esc(s.t) + '</h1></div>' +
+      '<div class="card qcard"><h2 class="h2">Правило</h2><div class="rule" style="border-color:' + col + '">' + md(th.rule) + '</div>' +
+      th.ex.map(function (e) { return '<div class="exm"><span class="ex">' + esc(e[0]) + '</span> <span class="small">' + esc(e[1]) + '</span></div>'; }).join('') +
+      (th.tip ? '<div class="small">' + md(th.tip) + '</div>' : '') + '</div>' +
+      '<div class="spread"><h2 class="h2">Упражнения</h2><span class="small">' + answered + ' из ' + n + '</span></div>' +
+      '<div class="qbar" style="grid-template-columns:repeat(' + n + ',minmax(0,1fr))">' + LS.qs.map(function (q) { return '<i class="' + (q.pick == null ? '' : q.pick === q.right ? 'ok' : 'no') + '"></i>'; }).join('') + '</div>';
+    LS.qs.forEach(function (q, qi) {
+      var done = q.pick != null;
+      h += '<div class="card qcard"><div class="qtext sm">' + esc(q.q) + '</div><div class="opts row2">' + q.options.map(function (o, oi) {
+        var cls = 'opt';
+        if (done) { if (oi === q.right) cls += ' right'; else if (oi === q.pick) cls += ' wrong'; }
+        return '<button class="' + cls + '" data-lp="' + qi + ':' + oi + '"' + (done ? ' disabled' : '') + '>' + esc(o) + '</button>';
+      }).join('') + '</div>' +
+      (done ? (q.pick === q.right ? '<div class="feedback ok"><b>Верно.</b></div>' : '<div class="feedback no"><b>Неверно.</b> Правильно: <b>' + esc(q.options[q.right]) + '</b></div>') : '') + '</div>';
+    });
+    if (answered < n) h += '<button class="btn block" disabled>Ответь на все упражнения (осталось ' + (n - answered) + ')</button>';
+    else h += '<div class="card"><b>Верно ' + okN + ' из ' + n + '.</b> ' + (okN / n < 0.75 ? 'Тема слабая: завтра она появится в плане на повторение.' : 'Хороший результат.') + '</div>' +
+      '<button class="btn primary block" data-act="lessondone">' + (st.lessons[s.id] ? 'Готово' : 'Урок пройден') + '</button>';
+    return h + '</section>';
+  }
+  function finishLesson() {
+    var c = course(LS.cid), s = c.steps[LS.i], n = LS.qs.length;
+    var okN = LS.qs.filter(function (q) { return q.pick === q.right; }).length;
+    if (okN / n < 0.75) {
+      var tm = new Date(); tm.setDate(tm.getDate() + 1); var tk = isoOf(tm), id = 'rep-' + s.id;
+      st.extraTasks[tk] = st.extraTasks[tk] || [];
+      if (!st.extraTasks[tk].some(function (x) { return x.id === id; })) st.extraTasks[tk].push({ id: id, cat: c.cat, t: 'Повторить: ' + s.t, min: 15, n: 'В уроке были ошибки.' });
+    }
+    if (!st.lessons[s.id]) { st.lessons[s.id] = isoOf(new Date()); toast('+20 очков. Урок пройден'); }
+    save(); LS = null; V.page = 'course'; V.step = null; render(); window.scrollTo(0, 0);
   }
 
   // ----- Экзамен -----
@@ -514,6 +568,7 @@
   function render() {
     var html, full = false;
     if (V.page === 'exam' && EX) { html = viewExam(); full = true; }
+    else if (V.page === 'lesson' && LS) { html = viewLesson(); full = true; }
     else if (V.page === 'result') { html = viewResult(); full = true; }
     else if (V.page === 'cards' && CARDS) { html = viewCards(); full = true; }
     else if (V.tab === 'learn' && V.page === 'course') html = viewCourse();
@@ -569,6 +624,8 @@
       if (st.lessons[v]) delete st.lessons[v]; else { st.lessons[v] = isoOf(new Date()); toast('+20 очков. Урок пройден'); }
       save(); V.step = null; render(); return;
     }
+    if ((v = b.getAttribute('data-lopen'))) { var lp = v.split(':'); startLesson(lp[0], +lp[1]); return; }
+    if ((v = b.getAttribute('data-lp'))) { var lq = v.split(':'); if (LS && LS.qs[+lq[0]].pick == null) { LS.qs[+lq[0]].pick = +lq[1]; render(); } return; }
     if ((v = b.getAttribute('data-exam'))) { var p = v.split(':'); startExam(p[0], +p[1]); return; }
     if ((v = b.getAttribute('data-result'))) { V.result = v; V.page = 'result'; render(); window.scrollTo(0, 0); return; }
     if ((v = b.getAttribute('data-pick')) != null) { EX.pick = +v; render(); return; }
@@ -591,6 +648,8 @@
       case 'tolearn': go('learn'); break;
       case 'check': check(); break;
       case 'nextq': nextQ(); break;
+      case 'endlesson': LS = null; V.page = 'course'; render(); break;
+      case 'lessondone': finishLesson(); break;
       case 'quitexam': EX = null; V.page = V.tab === 'learn' ? 'course' : null; render(); break;
       case 'cards': CARDS = { list: shuffle(learnedWords()).slice(0, 10), i: 0, shown: false, known: 0, done: false }; V.page = 'cards'; render(); window.scrollTo(0, 0); break;
       case 'show': CARDS.shown = true; render(); break;
