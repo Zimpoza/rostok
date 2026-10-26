@@ -1,6 +1,6 @@
 (function () {
   'use strict';
-  var APP_VERSION = '2.2';
+  var APP_VERSION = '2.3';
   var P = window.PLAN, COURSES = window.COURSES;
   var DOW = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
   var DOWF = ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота', 'Воскресенье'];
@@ -51,6 +51,8 @@
   function save() { try { localStorage.setItem(KEY, JSON.stringify(st)); } catch (e) { toast('Не получилось сохранить'); } }
 
   // ---------- курсы ----------
+  function hasProgress() { return Object.keys(st.lessons).length > 0 || Object.keys(st.exams).length > 0 || Object.keys(st.checks).some(function (k) { return Object.keys(st.checks[k] || {}).length > 0; }); }
+  function backupDays() { if (!st.backupAt) return null; var t = new Date(); return Math.round((new Date(t.getFullYear(), t.getMonth(), t.getDate()) - parse(st.backupAt)) / 864e5); }
   function lessonNo(c, idx) { var n = 0; for (var i = 0; i <= idx; i++) if (!c.steps[i].exam) n++; return n; }
   function stepDone(s) { return s.exam ? !!(st.exams[s.id] && st.exams[s.id].passed) : !!st.lessons[s.id]; }
   function stepState(c, idx) {
@@ -178,6 +180,11 @@
       h += '<div class="banner"><div class="tb"><b>Экзамен открыт</b>' + esc(x.c.name) + ', ' + esc(x.c.steps[x.i].t.replace('Экзамен: ', '')) + '</div>' +
         '<button class="btn primary" data-exam="' + x.c.id + ':' + x.i + '">Сдать</button></div>';
     });
+    var bd = backupDays();
+    if (hasProgress() && (bd === null || bd >= 7)) {
+      h += '<div class="banner"><div class="tb"><b>Сохрани копию</b>' + (bd === null ? 'Копию прогресса ты ещё не делал.' : 'Копию не делал ' + bd + ' ' + plural(bd, 'день', 'дня', 'дней') + '.') + '</div>' +
+        '<button class="btn primary" data-act="export">Сохранить</button></div>';
+    }
     h += '<div class="card sumcard">' + ring(s.done, s.n) + '<div><div class="big">' + fmt(s.doneMin) + ' из ' + fmt(s.totalMin) + '</div><div class="muted">' + sub + '</div></div></div>';
     h += '<div class="modes" role="group" aria-label="Тип дня">' + MODES.map(function (x) { return '<button data-mode="' + x[0] + '" aria-pressed="' + (m === x[0]) + '">' + x[1] + '</button>'; }).join('') + '</div>';
     h += '<div class="card" style="padding:4px 0"><ul class="tasks">';
@@ -559,6 +566,7 @@
     // копия
     h += '<div class="card"><h2 class="h2" style="margin-bottom:6px">Резервная копия</h2>' +
       '<p class="muted">Весь прогресс хранится только в этом телефоне. Раз в неделю сохраняй копию в файл, чтобы не потерять его при очистке браузера или смене телефона.</p>' +
+      '<p class="small" style="margin-top:6px">' + (st.backupAt ? 'Последняя копия: ' + st.backupAt.split('-').reverse().join('.') : 'Копию ещё не делал.') + '</p>' +
       '<div class="btns" style="margin-top:10px"><button class="btn primary" data-act="export">Сохранить в файл</button>' +
       '<label class="btn" for="importFile">Восстановить из файла</label><input type="file" id="importFile" accept=".json,application/json"></div></div>';
     return h + '<div class="ver">Версия ' + APP_VERSION + ' · план v' + P.version + '</div></section>';
@@ -687,11 +695,12 @@
 
   function exportFile() {
     try {
+      st.backupAt = isoOf(new Date()); save();
       var blob = new Blob([JSON.stringify({ app: 'dnevnik', v: APP_VERSION, saved: new Date().toISOString(), state: st }, null, 1)], { type: 'application/json' });
       var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'rostok-' + isoOf(new Date()) + '.json';
       document.body.appendChild(a); a.click(); a.remove();
       setTimeout(function () { URL.revokeObjectURL(a.href); }, 4000);
-      toast('Файл копии сохранён');
+      toast('Файл копии сохранён'); render();
     } catch (e) { toast('Не получилось сохранить файл'); }
   }
 
