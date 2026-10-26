@@ -1,6 +1,6 @@
 (function () {
   'use strict';
-  var APP_VERSION = '3.0';
+  var APP_VERSION = '3.1';
   var P = window.PLAN, COURSES = window.COURSES;
   var DOW = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
   var DOWF = ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота', 'Воскресенье'];
@@ -355,6 +355,63 @@
     LS = { cid: cid, i: i, qs: qs };
     V.page = 'lesson'; render(); window.scrollTo(0, 0);
   }
+  // ----- Текст стихов: русские классики подгружаются с Викитеки (общественное достояние), для переводов и английских оригиналов только ссылка -----
+  var PC = {}, PP = {};
+  function ny(x) { return String(x).toLowerCase().replace(/ё/g, 'е'); }
+  function wsLink(s) { return 'https://ru.wikisource.org/w/index.php?search=' + encodeURIComponent(s.wiki.q + ' ' + s.wiki.a); }
+  function poemBlock(s) {
+    if (s.wiki) return '<div class="card qcard"><h2 class="h2">Текст стихотворения</h2><div id="poemtext" data-id="' + s.id + '" class="small">Загружаю с Викитеки…</div></div>';
+    if (s.link) return '<div class="card qcard"><h2 class="h2">Текст стихотворения</h2><div class="small">Перевод может быть под авторским правом, поэтому текст здесь не показываю. Оригинал можно найти по ссылке.</div>' +
+      '<a class="btn block" href="' + esc(s.link) + '" target="_blank" rel="noopener">Найти текст</a></div>';
+    return '';
+  }
+  function paintPoem(id) {
+    var el = document.getElementById('poemtext'); if (!el || el.getAttribute('data-id') !== id || !PC[id]) return;
+    var r = PC[id], s = course(LS.cid).steps[LS.i];
+    el.textContent = '';
+    if (r.fail) {
+      var m = document.createElement('div'); m.textContent = 'Не удалось подгрузить текст автоматически.'; el.appendChild(m);
+      var b = document.createElement('a'); b.className = 'btn block'; b.href = wsLink(s); b.target = '_blank'; b.rel = 'noopener'; b.textContent = 'Найти в Викитеке'; el.appendChild(b);
+      return;
+    }
+    var t = document.createElement('div'); t.className = 'poemtxt'; t.textContent = r.text; el.appendChild(t);
+    var a = document.createElement('a'); a.className = 'small'; a.href = r.url; a.target = '_blank'; a.rel = 'noopener'; a.textContent = 'Источник: Викитека, «' + r.title + '»'; el.appendChild(a);
+  }
+  function poemText(html) {
+    var doc = new DOMParser().parseFromString(html, 'text/html'), out = [];
+    var poems = doc.querySelectorAll('.poem');
+    for (var i = 0; i < poems.length; i++) {
+      var refs = poems[i].querySelectorAll('sup, .reference'); for (var j = 0; j < refs.length; j++) refs[j].parentNode.removeChild(refs[j]);
+      var brs = poems[i].querySelectorAll('br'); for (var k = 0; k < brs.length; k++) brs[k].parentNode.replaceChild(doc.createTextNode('\n'), brs[k]);
+      var ps = poems[i].querySelectorAll('p');
+      if (ps.length) { for (var q = 0; q < ps.length; q++) { var tx = ps[q].textContent.replace(/^\s+|\s+$/g, ''); if (tx) out.push(tx); } }
+      else { var t2 = poems[i].textContent.replace(/^\s+|\s+$/g, ''); if (t2) out.push(t2); }
+    }
+    return out.join('\n\n');
+  }
+  function loadPoem() {
+    var s = course(LS.cid).steps[LS.i]; if (!s.wiki) return;
+    var id = s.id; if (PC[id]) { paintPoem(id); return; } if (PP[id]) return; PP[id] = 1;
+    var api = 'https://ru.wikisource.org/w/api.php?format=json&origin=*&';
+    function fail() { PC[id] = { fail: true }; PP[id] = 0; paintPoem(id); }
+    try {
+      fetch(api + 'action=query&list=search&srnamespace=0&srlimit=10&srsearch=' + encodeURIComponent(s.wiki.q + ' ' + s.wiki.a))
+        .then(function (r) { return r.json(); })
+        .then(function (d) {
+          var list = (d.query && d.query.search) || [], title = null;
+          for (var i = 0; i < list.length && !title; i++) { var nt = ny(list[i].title); for (var j = 0; j < s.wiki.m.length; j++) if (nt.indexOf(ny(s.wiki.m[j])) >= 0) { title = list[i].title; break; } }
+          if (!title) { fail(); return; }
+          return fetch(api + 'action=parse&prop=text&formatversion=2&redirects=1&page=' + encodeURIComponent(title))
+            .then(function (r) { return r.json(); })
+            .then(function (p) {
+              var txt = p && p.parse ? poemText(p.parse.text) : '';
+              if (!txt || txt.length > 4000) { fail(); return; }
+              PC[id] = { text: txt, title: title, url: 'https://ru.wikisource.org/wiki/' + encodeURIComponent(title.replace(/ /g, '_')) }; PP[id] = 0; paintPoem(id);
+            });
+        })
+        .catch(fail);
+    } catch (e) { fail(); }
+  }
   function viewLesson() {
     var c = course(LS.cid), s = c.steps[LS.i], th = s.theory, col = 'var(--c-' + c.cat + ')';
     var answered = LS.qs.filter(function (q) { return q.pick != null; }).length, n = LS.qs.length;
@@ -363,7 +420,7 @@
       '<div class="title"><div class="eyebrow">' + (c.unit === 'правило' ? 'Правило ' : 'Урок ') + lessonNo(c, LS.i) + '</div><h1 class="h1">' + esc(s.t) + '</h1></div>' +
       '<div class="card qcard"><h2 class="h2">Правило</h2><div class="rule" style="border-color:' + col + '">' + md(th.rule) + '</div>' +
       th.ex.map(function (e) { return '<div class="exm"><span class="ex">' + esc(e[0]) + '</span> <span class="small">' + esc(e[1]) + '</span></div>'; }).join('') +
-      (th.tip ? '<div class="small">' + md(th.tip) + '</div>' : '') + '</div>' +
+      (th.tip ? '<div class="small">' + md(th.tip) + '</div>' : '') + '</div>' + poemBlock(s) +
       '<div class="spread"><h2 class="h2">Упражнения</h2><span class="small">' + answered + ' из ' + n + '</span></div>' +
       '<div class="qbar" style="grid-template-columns:repeat(' + n + ',minmax(0,1fr))">' + LS.qs.map(function (q) { return '<i class="' + (q.pick == null ? '' : q.pick === q.right ? 'ok' : 'no') + '"></i>'; }).join('') + '</div>';
     LS.qs.forEach(function (q, qi) {
@@ -583,6 +640,7 @@
     else html = V.tab === 'learn' ? viewLearn() : V.tab === 'growth' ? viewGrowth() : viewToday();
     app.innerHTML = html;
     app.className = full ? 'full' : '';
+    if (V.page === 'lesson' && LS) loadPoem();
     document.getElementById('tabbar').hidden = full;
     var tabs = document.querySelectorAll('.tab');
     for (var i = 0; i < tabs.length; i++) { if (tabs[i].getAttribute('data-tab') === V.tab) tabs[i].setAttribute('aria-current', 'page'); else tabs[i].removeAttribute('aria-current'); }
