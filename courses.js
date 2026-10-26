@@ -59,7 +59,29 @@ window.COURSES = [
       { id: 'e11', t: 'Прошлое: was / were', plan: 'я был, мы были; вчера, на прошлой неделе',
         words: [['was', 'уоз', 'был'], ['were', 'уё', 'были'], ['yesterday', 'йе́стэдэй', 'вчера'], ['last week', 'ласт уик', 'на прошлой неделе'], ['ago', 'эго́у', 'назад']] },
       { id: 'e12', t: 'Первый мини-диалог с Claude', plan: '10 сообщений подряд только на английском', words: [] },
-      { id: 'eng-x2', exam: true, t: 'Экзамен: уроки 7–12', covers: ['e7', 'e8', 'e9', 'e10', 'e11', 'e12'], pass: 0.8, q: [] }
+      { id: 'eng-x2', exam: true, t: 'Экзамен: уроки 7–12', covers: ['e7', 'e8', 'e9', 'e10', 'e11', 'e12'], pass: 0.8,
+        q: [
+          { k: 'choice', s: 'e7', q: 'Выбери перевод: «Я умею водить»', options: ['I can drive', 'I can driving', 'I drive can', 'I am drive'] },
+          { k: 'choice', s: 'e7', q: 'Вставь слово: «I ___ work on Sunday» (не работаю)', options: ["don't", "doesn't", 'not', 'am not'] },
+          { k: 'input', s: 'e7', q: 'Переведи на английский: «писать»', a: ['write', 'to write'] },
+          { k: 'choice', s: 'e7', q: 'Как ответить «да» на «Can you read?»', options: ['Yes, I can.', 'Yes, I do.', 'Yes, I am.', 'Yes, I read.'] },
+          { k: 'choice', s: 'e8', q: 'Что значит get up [гет ап]?', options: ['вставать', 'ложиться', 'идти', 'есть'] },
+          { k: 'input', s: 'e8', q: 'Переведи на английский: «спать»', a: ['sleep', 'to sleep'] },
+          { k: 'choice', s: 'e8', q: 'Выбери перевод: «Я ем рыбу»', options: ['I eat fish', 'I eats fish', 'I am eat fish', 'I fish eat'] },
+          { k: 'order', s: 'e8', q: 'Собери фразу: «Я учу английский»', words: ['English', 'learn', 'I'], a: 'I learn English' },
+          { k: 'choice', s: 'e9', q: 'Что значит where [уэа]?', options: ['где', 'когда', 'почему', 'кто'] },
+          { k: 'choice', s: 'e9', q: 'Вставь слово: «___ is your name?»', options: ['What', 'Where', 'Why', 'When'] },
+          { k: 'order', s: 'e9', q: 'Собери вопрос: «Где ты работаешь?»', words: ['you', 'Where', 'work', 'do'], a: 'Where do you work' },
+          { k: 'choice', s: 'e9', q: 'Как по-английски «почему»?', options: ['why', 'who', 'how', 'what'] },
+          { k: 'choice', s: 'e10', q: 'Что значит «Can you help me?»', options: ['Ты можешь мне помочь?', 'Ты меня понимаешь?', 'Что это значит?', 'Объясни ещё раз'] },
+          { k: 'input', s: 'e10', q: 'Переведи на английский: «пример»', a: ['example', 'an example'] },
+          { k: 'choice', s: 'e10', q: 'Как попросить: «Объясни ещё раз, пожалуйста»?', options: ['Please explain again', 'Please understand again', 'Please mean again', 'Please example again'] },
+          { k: 'choice', s: 'e11', q: 'Вставь слово: «Yesterday I ___ at home»', options: ['was', 'were', 'am', 'is'] },
+          { k: 'choice', s: 'e11', q: 'Вставь слово: «They ___ tired yesterday»', options: ['were', 'was', 'are', 'be'] },
+          { k: 'choice', s: 'e11', q: 'Выбери перевод: «на прошлой неделе»', options: ['last week', 'next week', 'this week', 'every week'] },
+          { k: 'choice', s: 'e12', q: 'Claude пишет: «How are you?». Какой ответ лучше?', options: ['I am fine, thank you', 'I fine thank', 'Me am fine', 'You are fine'] },
+          { k: 'order', s: 'e12', q: 'Собери фразу: «Можешь объяснить?»', words: ['you', 'Can', 'explain'], a: 'Can you explain' }
+        ] }
     ]
   },
   {
