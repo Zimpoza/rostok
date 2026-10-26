@@ -19,7 +19,7 @@
   --bg:#EEF0EB; --card:#FFFFFF; --ink:#18262B; --mute:#5E6E73; --line:#D8DDD6; --soft:#E3E7E0; --box:#B9C1B8;
   --accent:#D9531E; --accent-ink:#FFFFFF; --done:#2F8F5B; --full:#23744A; --part:#BFE0CC; --part-ink:#18262B;
   --bad:#C23B3B; --hero:#18262B; --hero-ink:#FFFFFF;
-  --c-eng:#2F6FDB; --c-rus:#C23B3B; --c-code:#0E8F8A; --c-poem:#C2417A; --c-read:#B7791F; --c-music:#5B8C2A; --c-book:#7A5A3A; --c-plan:#5E6E73;
+  --c-eng:#2F6FDB; --c-rus:#C23B3B; --c-code:#0E8F8A; --c-ai:#7B5CD6; --c-poem:#C2417A; --c-read:#B7791F; --c-music:#5B8C2A; --c-book:#7A5A3A; --c-plan:#5E6E73;
   --f-d:'Oswald','Arial Narrow',sans-serif; --f-b:'Onest',system-ui,-apple-system,'Segoe UI',sans-serif;
   color-scheme:light;
 }
@@ -28,7 +28,7 @@
     --bg:#11191C; --card:#1A2529; --ink:#E8EDEA; --mute:#97A6AB; --line:#2B3A3F; --soft:#223035; --box:#4A5C61;
     --accent:#FF8A4C; --accent-ink:#1A1208; --done:#3FB273; --full:#2E8F5A; --part:#2C4A3A; --part-ink:#E8EDEA;
     --bad:#FF7B7B; --hero:#24343A; --hero-ink:#F2F5F3;
-    --c-eng:#6FA3FF; --c-rus:#FF7B7B; --c-code:#46C9C2; --c-poem:#F07DB0; --c-read:#E9B14F; --c-music:#9BCF5C; --c-book:#C99A6B; --c-plan:#97A6AB;
+    --c-eng:#6FA3FF; --c-rus:#FF7B7B; --c-code:#46C9C2; --c-ai:#A890F2; --c-poem:#F07DB0; --c-read:#E9B14F; --c-music:#9BCF5C; --c-book:#C99A6B; --c-plan:#97A6AB;
     color-scheme:dark;
   }
 }
@@ -228,9 +228,9 @@ input[type=file]{position:absolute;width:1px;height:1px;opacity:0}
 </div></nav>
 <div class="toast" id="toast" hidden></div>
 <div class="modal" id="modal" hidden></div>
-<script src="plan.js?v=2.6"></script>
-<script src="courses.js?v=2.6"></script>
-<script src="app.js?v=2.6"></script>
+<script src="plan.js?v=2.7"></script>
+<script src="courses.js?v=2.7"></script>
+<script src="app.js?v=2.7"></script>
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function(){ navigator.serviceWorker.register('sw.js').catch(function(){}); });
