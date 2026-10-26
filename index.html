@@ -211,8 +211,9 @@ main.full{padding-bottom:calc(env(safe-area-inset-bottom,0px) + 24px)}
 .modal textarea{min-height:160px;font-size:13px}
 input[type=file]{position:absolute;width:1px;height:1px;opacity:0}
 .qtext.sm{font-size:19px}
-.opts.row2{flex-direction:row;flex-wrap:wrap}.opts.row2 .opt{flex:1 1 130px;text-align:center}
-.poemtxt{white-space:pre-wrap;font-size:15.5px;line-height:1.55;margin:6px 0 10px}
+.opts.row2{flex-direction:row;flex-wrap:wrap}.opts.row2 .opt{flex:1 1 calc(50% - 4px);text-align:center}
+.poemtxt{white-space:pre-wrap;font-size:16.5px;line-height:1.6;color:var(--ink);margin:6px 0 12px}
+.lnk{color:var(--accent)}
 .rule{border-left:3px solid var(--accent);padding-left:12px;font-size:15.5px}
 .exm{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 8px}
 .ex{background:var(--soft);border-radius:8px;padding:2px 8px;font-weight:600}
@@ -229,9 +230,9 @@ input[type=file]{position:absolute;width:1px;height:1px;opacity:0}
 </div></nav>
 <div class="toast" id="toast" hidden></div>
 <div class="modal" id="modal" hidden></div>
-<script src="plan.js?v=3.2"></script>
-<script src="courses.js?v=3.2"></script>
-<script src="app.js?v=3.2"></script>
+<script src="plan.js?v=3.3"></script>
+<script src="courses.js?v=3.3"></script>
+<script src="app.js?v=3.3"></script>
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function(){ navigator.serviceWorker.register('sw.js').catch(function(){}); });

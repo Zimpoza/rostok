@@ -1,6 +1,6 @@
 // Офлайн-кеш. При обновлении приложения меняется номер версии.
-var C = 'rostok-v3-2';
-var F = ['./', 'index.html', 'app.js?v=3.2', 'plan.js?v=3.2', 'courses.js?v=3.2', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png', 'apple-touch-icon.png'];
+var C = 'rostok-v3-3';
+var F = ['./', 'index.html', 'app.js?v=3.3', 'plan.js?v=3.3', 'courses.js?v=3.3', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png', 'apple-touch-icon.png'];
 self.addEventListener('install', function (e) { e.waitUntil(caches.open(C).then(function (c) { return c.addAll(F); })); self.skipWaiting(); });
 self.addEventListener('activate', function (e) {
   e.waitUntil(caches.keys().then(function (k) { return Promise.all(k.filter(function (x) { return x !== C; }).map(function (x) { return caches.delete(x); })); }));
@@ -9,6 +9,7 @@ self.addEventListener('activate', function (e) {
 // Сначала сеть (чтобы новые уроки приходили сразу), без сети — из кеша.
 self.addEventListener('fetch', function (e) {
   if (e.request.method !== 'GET') return;
+  if (new URL(e.request.url).origin !== location.origin) return; // чужие адреса (Викитека, GitHub) кеш не трогает
   e.respondWith(fetch(e.request).then(function (r) {
     if (r.ok && new URL(e.request.url).origin === location.origin) { var cp = r.clone(); caches.open(C).then(function (c) { c.put(e.request, cp); }); }
     return r;

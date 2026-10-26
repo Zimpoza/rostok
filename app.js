@@ -1,6 +1,6 @@
 (function () {
   'use strict';
-  var APP_VERSION = '3.2';
+  var APP_VERSION = '3.3';
   var P = window.PLAN, COURSES = window.COURSES;
   var DOW = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
   var DOWF = ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота', 'Воскресенье'];
@@ -772,7 +772,7 @@
       return h;
     }
     return h + '<p class="muted">Сейчас прогресс у каждого устройства свой. Чтобы он был общим:</p>' +
-      '<p class="small" style="margin-top:6px">1. Открой <a href="https://github.com/settings/tokens/new?scopes=gist&description=Rostok" target="_blank" rel="noopener">страницу создания токена</a>, войди в GitHub, внизу нажми Generate token. Нужен токен (classic) только с правом gist. Токен — это длинный пароль для приложения.<br>2. Скопируй его и вставь ниже. Он хранится только в этом браузере. В чат его не присылай.<br>3. На другом устройстве сделай то же самое с тем же токеном.</p>' +
+      '<p class="small" style="margin-top:6px">1. Открой <a class="lnk" href="https://github.com/settings/tokens/new?scopes=gist&description=Rostok" target="_blank" rel="noopener">страницу создания токена</a>, войди в GitHub, внизу нажми Generate token. Нужен токен (classic) только с правом gist. Токен — это длинный пароль для приложения.<br>2. Скопируй его и вставь ниже. Он хранится только в этом браузере. В чат его не присылай.<br>3. На другом устройстве сделай то же самое с тем же токеном.</p>' +
       '<p class="small" style="margin-top:6px">Gist секретный: его нельзя найти поиском, но он открывается по ссылке без пароля. Там будут твой прогресс и записи «Итоги недели». Перед включением приложение сохранит копию в файл.</p>' +
       '<label class="lab" for="sy-token" style="margin-top:10px">Токен<input type="password" id="sy-token" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Вставь токен"></label>' +
       '<div class="btns" style="margin-top:10px"><button class="btn primary" data-act="syncon">Подключить</button></div></div>';
