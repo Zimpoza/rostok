@@ -1,6 +1,6 @@
 (function () {
   'use strict';
-  var APP_VERSION = '3.1';
+  var APP_VERSION = '3.2';
   var P = window.PLAN, COURSES = window.COURSES;
   var DOW = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
   var DOWF = ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота', 'Воскресенье'];
@@ -48,7 +48,8 @@
     try { var r = localStorage.getItem(KEY); if (r) { var o = JSON.parse(r); if (o && typeof o === 'object') st = o; } } catch (e) {}
     fixState();
   }
-  function save() { try { localStorage.setItem(KEY, JSON.stringify(st)); } catch (e) { toast('Не получилось сохранить'); } }
+  function persist() { try { localStorage.setItem(KEY, JSON.stringify(st)); return true; } catch (e) { return false; } }
+  function save() { if (!persist()) toast('Не получилось сохранить'); schedSync(); }
 
   // ---------- курсы ----------
   function hasProgress() { return Object.keys(st.lessons).length > 0 || Object.keys(st.exams).length > 0 || Object.keys(st.checks).some(function (k) { return Object.keys(st.checks[k] || {}).length > 0; }); }
@@ -626,7 +627,155 @@
       '<p class="small" style="margin-top:6px">' + (st.backupAt ? 'Последняя копия: ' + st.backupAt.split('-').reverse().join('.') : 'Копию ещё не делал.') + '</p>' +
       '<div class="btns" style="margin-top:10px"><button class="btn primary" data-act="export">Сохранить в файл</button>' +
       '<label class="btn" for="importFile">Восстановить из файла</label><input type="file" id="importFile" accept=".json,application/json"></div></div>';
+    h += syncCard();
     return h + '<div class="ver">Версия ' + APP_VERSION + ' · план v' + P.version + '</div></section>';
+  }
+
+  // ---------- синхронизация через секретный Gist ----------
+  // Токен и снимок «как было при прошлой синхронизации» лежат в отдельном ключе: ни в файл копии, ни в Gist они не попадают.
+  var SK = 'rostok-sync', SEP = '\u001f', GFILE = 'rostok-state.json';
+  var SY = { cfg: null, busy: false, again: false, err: '', timer: null };
+  function syLoad() { try { var r = localStorage.getItem(SK); SY.cfg = r ? JSON.parse(r) : null; } catch (e) { SY.cfg = null; } }
+  function sySave() { try { localStorage.setItem(SK, JSON.stringify(SY.cfg)); } catch (e) {} }
+  function flat(x) {
+    var c = {}, o = {}, tm = {}, bm = {};
+    Object.keys(x).forEach(function (k) { if (k !== 'tracks' && k !== 'booksAdded') c[k] = x[k]; });
+    (x.tracks || []).forEach(function (t) { if (t && t.name != null) tm[t.name] = t.stage; });
+    (x.booksAdded || []).forEach(function (b) { if (b && b.id != null) bm[b.id] = b.t; });
+    c.tracksM = tm; c.booksAddedM = bm;
+    function rec(p, v) {
+      if (v && typeof v === 'object' && !Array.isArray(v)) Object.keys(v).forEach(function (k) { rec(p === '' ? k : p + SEP + k, v[k]); });
+      else if (p !== '') o[p] = JSON.stringify(v);
+    }
+    rec('', c); return o;
+  }
+  function unflat(o) {
+    var x = {};
+    Object.keys(o).forEach(function (p) {
+      var a = p.split(SEP), cur = x, i;
+      for (i = 0; i < a.length; i++) if (a[i] === '__proto__' || a[i] === 'constructor' || a[i] === 'prototype') return;
+      for (i = 0; i < a.length - 1; i++) { if (!cur[a[i]] || typeof cur[a[i]] !== 'object') cur[a[i]] = {}; cur = cur[a[i]]; }
+      cur[a[a.length - 1]] = JSON.parse(o[p]);
+    });
+    var tm = x.tracksM || {}; x.tracks = Object.keys(tm).map(function (n) { return { name: n, stage: num(tm[n]) }; }); delete x.tracksM;
+    var bm = x.booksAddedM || {}; x.booksAdded = Object.keys(bm).map(function (i) { return { id: i, t: bm[i] }; }); delete x.booksAddedM;
+    return x;
+  }
+  function same(a, b) { var ka = Object.keys(a); if (ka.length !== Object.keys(b).length) return false; return ka.every(function (k) { return a[k] === b[k]; }); }
+  // Если один пункт изменён на обоих устройствах: число — большее, текст — длиннее, иначе большее по алфавиту (одинаково на обоих устройствах).
+  function pick(l, r) {
+    var a = JSON.parse(l), b = JSON.parse(r);
+    if (typeof a === 'number' && typeof b === 'number') return a >= b ? l : r;
+    if (Array.isArray(a) && Array.isArray(b) && a.length !== b.length) return a.length > b.length ? l : r;
+    if (typeof a === 'string' && typeof b === 'string' && a.length !== b.length) return a.length > b.length ? l : r;
+    return l >= r ? l : r;
+  }
+  // Три стороны: здесь (L), в Gist (R) и «как было при прошлой синхронизации» (B). Так удаление отметки не воскресает.
+  function merge3(L, R, B) {
+    var m = {}, keys = Object.keys(L);
+    Object.keys(R).forEach(function (k) { if (!(k in L)) keys.push(k); });
+    keys.forEach(function (k) {
+      var l = L[k], r = R[k], b = B[k], v;
+      if (l === r) v = l; else if (l === b) v = r; else if (r === b) v = l; else if (l === undefined) v = r; else if (r === undefined) v = l; else v = pick(l, r);
+      if (v !== undefined) m[k] = v;
+    });
+    return m;
+  }
+  function gh(method, path, body) {
+    var h = { 'Authorization': 'Bearer ' + SY.cfg.token, 'Accept': 'application/vnd.github+json' };
+    if (body) h['Content-Type'] = 'application/json';
+    return fetch('https://api.github.com' + path, { method: method, headers: h, body: body ? JSON.stringify(body) : undefined }).then(function (r) {
+      if (r.status === 401) throw new Error('auth');
+      if (r.status === 403 || r.status === 429) throw new Error('limit');
+      if (!r.ok) throw new Error('http' + r.status);
+      return r.json();
+    });
+  }
+  function findGist(pg) {
+    return gh('GET', '/gists?per_page=100&page=' + pg).then(function (l) {
+      for (var i = 0; i < l.length; i++) if (l[i].files && l[i].files[GFILE]) return l[i].id;
+      return (l.length === 100 && pg < 5) ? findGist(pg + 1) : null;
+    });
+  }
+  function readGist(id) {
+    return gh('GET', '/gists/' + id).then(function (g) {
+      var f = g.files && g.files[GFILE]; if (!f) throw new Error('nofile');
+      return f.truncated ? fetch(f.raw_url).then(function (r) { return r.text(); }) : f.content;
+    }).then(function (t) {
+      var o; try { o = JSON.parse(t); } catch (e) { throw new Error('bad'); }
+      if (!o || !o.state || typeof o.state !== 'object') throw new Error('bad');
+      return o.state;
+    });
+  }
+  function pushGist(id, state) {
+    var files = {}; files[GFILE] = { content: JSON.stringify({ app: 'rostok-sync', v: 1, saved: new Date().toISOString(), state: state }) };
+    return id ? gh('PATCH', '/gists/' + id, { files: files }).then(function () { return id; })
+              : gh('POST', '/gists', { description: 'Росток: прогресс (синхронизация)', public: false, files: files }).then(function (g) { return g.id; });
+  }
+  function syErr(e) {
+    var m = e && e.message;
+    if (m === 'auth') return 'Токен не подошёл. Создай новый и подключи заново.';
+    if (m === 'limit') return 'GitHub просит подождать. Попробуй позже.';
+    if (m === 'http404') return 'Gist не найден. Нажми «Синхронизировать» ещё раз.';
+    if (m === 'bad' || m === 'nofile') return 'Файл в Gist повреждён. Ничего не перезаписал.';
+    if (e instanceof TypeError) return 'Нет связи.';
+    return 'Не получилось синхронизировать.';
+  }
+  function schedSync() { if (!SY.cfg) return; clearTimeout(SY.timer); SY.timer = setTimeout(function () { syncNow(false); }, 6000); }
+  function syncNow(manual) {
+    if (!SY.cfg) return;
+    if (SY.busy) { SY.again = true; return; }
+    SY.busy = true; SY.err = ''; if (manual) render();
+    var gid = SY.cfg.gistId, changedLocal = false;
+    (gid ? Promise.resolve(gid) : findGist(1)).then(function (id) { gid = id; return id ? readGist(id) : null; })
+      .then(function (remote) {
+        var L = flat(st), R = remote ? flat(remote) : {}, B = SY.cfg.base || {};
+        var M = merge3(L, R, B);
+        changedLocal = !same(M, L);
+        if (changedLocal) {
+          if (!same(flat(st), L)) { SY.again = true; return null; } // пока шла сеть, ты что-то изменил: объединим в следующий раз
+          st = unflat(M); fixState(); persist();
+        }
+        SY.cfg.base = M;
+        var pr = (!remote || !same(M, R)) ? pushGist(gid, st) : Promise.resolve(gid);
+        return pr.then(function (id) { SY.cfg.gistId = id; SY.cfg.at = Date.now(); sySave(); });
+      })
+      .then(function () { SY.busy = false; if (manual) toast('Синхронизировано'); var ae = document.activeElement; if ((manual || changedLocal) && !(ae && /^(INPUT|TEXTAREA)$/.test(ae.tagName))) render(); })
+      .catch(function (e) {
+        SY.busy = false; SY.err = syErr(e);
+        if (e && e.message === 'http404') { SY.cfg.gistId = null; SY.cfg.base = {}; sySave(); }
+        if (manual) toast(SY.err); var ae = document.activeElement; if (!(ae && /^(INPUT|TEXTAREA)$/.test(ae.tagName))) render();
+      })
+      .then(function () { if (SY.again) { SY.again = false; setTimeout(function () { syncNow(false); }, 800); } });
+  }
+  function syncOn() {
+    var el = document.getElementById('sy-token'), tk = el ? el.value.trim() : '';
+    if (!/^[\w-]{20,}$/.test(tk)) { toast('Вставь токен целиком'); return; }
+    SY.cfg = { token: tk, gistId: null, base: {}, at: 0 };
+    gh('GET', '/gists?per_page=1').then(function () {
+      if (!confirm('Перед включением сохраню копию прогресса в файл, на всякий случай. Продолжить?')) { SY.cfg = null; return; }
+      exportFile(); sySave(); syncNow(true);
+    }).catch(function (e) { SY.cfg = null; toast(syErr(e)); });
+  }
+  function syncOff() {
+    if (!confirm('Отключить синхронизацию на этом устройстве? Данные в Gist останутся, токен удалится отсюда.')) return;
+    SY.cfg = null; clearTimeout(SY.timer); try { localStorage.removeItem(SK); } catch (e) {} render();
+  }
+  function fmtAt(ms) { var d = new Date(ms); return pad(d.getDate()) + '.' + pad(d.getMonth() + 1) + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes()); }
+  function syncCard() {
+    var h = '<div class="card"><h2 class="h2" style="margin-bottom:6px">Синхронизация телефона и компьютера</h2>';
+    if (SY.cfg) {
+      h += '<p class="muted">Включена. Прогресс объединяется через твой секретный Gist на GitHub.</p>' +
+        '<p class="small" style="margin-top:6px">' + (SY.busy ? 'Синхронизирую…' : SY.err ? esc(SY.err) : SY.cfg.at ? 'Последняя синхронизация: ' + fmtAt(SY.cfg.at) : 'Ещё не синхронизировалось.') + '</p>' +
+        '<p class="small" style="margin-top:6px">Если один и тот же пункт изменён на двух устройствах сразу, остаётся поставленная отметка и большее число.</p>' +
+        '<div class="btns" style="margin-top:10px"><button class="btn primary" data-act="syncnow"' + (SY.busy ? ' disabled' : '') + '>Синхронизировать</button><button class="btn" data-act="syncoff">Отключить</button></div></div>';
+      return h;
+    }
+    return h + '<p class="muted">Сейчас прогресс у каждого устройства свой. Чтобы он был общим:</p>' +
+      '<p class="small" style="margin-top:6px">1. Открой <a href="https://github.com/settings/tokens/new?scopes=gist&description=Rostok" target="_blank" rel="noopener">страницу создания токена</a>, войди в GitHub, внизу нажми Generate token. Нужен токен (classic) только с правом gist. Токен — это длинный пароль для приложения.<br>2. Скопируй его и вставь ниже. Он хранится только в этом браузере. В чат его не присылай.<br>3. На другом устройстве сделай то же самое с тем же токеном.</p>' +
+      '<p class="small" style="margin-top:6px">Gist секретный: его нельзя найти поиском, но он открывается по ссылке без пароля. Там будут твой прогресс и записи «Итоги недели». Перед включением приложение сохранит копию в файл.</p>' +
+      '<label class="lab" for="sy-token" style="margin-top:10px">Токен<input type="password" id="sy-token" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Вставь токен"></label>' +
+      '<div class="btns" style="margin-top:10px"><button class="btn primary" data-act="syncon">Подключить</button></div></div>';
   }
 
   // ---------- отрисовка ----------
@@ -723,6 +872,9 @@
       case 'addtrack': var tn = document.getElementById('new-track').value.trim(); if (!tn) { toast('Впиши название трека'); break; } st.tracks.push({ name: tn, stage: 0 }); save(); render(); break;
       case 'addbook': var bn = document.getElementById('new-book').value.trim(); if (!bn) { toast('Впиши название книги'); break; } st.booksAdded.push({ id: 'u' + Date.now(), t: bn }); save(); render(); break;
       case 'export': exportFile(); break;
+      case 'syncon': syncOn(); break;
+      case 'syncnow': syncNow(true); break;
+      case 'syncoff': syncOff(); break;
       case 'closemodal': document.getElementById('modal').hidden = true; break;
     }
   });
@@ -764,10 +916,13 @@
 
   document.addEventListener('visibilitychange', function () {
     if (document.visibilityState !== 'visible') return;
+    if (SY.cfg && Date.now() - (SY.cfg.at || 0) > 60000) syncNow(false);
     var nt = rawToday();
     if (nt !== today) { if (sel === clamp(today)) sel = clamp(nt); today = nt; if (!V.page) render(); }
   });
 
   load();
+  syLoad();
   render();
+  if (SY.cfg) syncNow(false);
 })();
