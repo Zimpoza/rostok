@@ -1,6 +1,6 @@
 (function () {
   'use strict';
-  var APP_VERSION = '3.3';
+  var APP_VERSION = '3.4';
   var P = window.PLAN, COURSES = window.COURSES;
   var DOW = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
   var DOWF = ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота', 'Воскресенье'];
@@ -186,6 +186,18 @@
       h += '<div class="banner"><div class="tb"><b>Сохрани копию</b>' + (bd === null ? 'Копию прогресса ты ещё не делал.' : 'Копию не делал ' + bd + ' ' + plural(bd, 'день', 'дня', 'дней') + '.') + '</div>' +
         '<button class="btn primary" data-act="export">Сохранить</button></div>';
     }
+    // Основное действие дня: быстрый возврат к ближайшему доступному уроку.
+    var nextLesson = null;
+    COURSES.some(function (c) {
+      if (c.type !== 'path') return false;
+      var i = nextIdx(c);
+      if (i >= 0 && c.steps[i] && !c.steps[i].exam) { nextLesson = { c: c, i: i }; return true; }
+      return false;
+    });
+    if (nextLesson) {
+      h += '<div class="daily-focus"><div class="daily-focus-copy"><span class="eyebrow">Твой следующий шаг</span><strong>' + esc(nextLesson.c.name) + '</strong><span>' + esc(nextLesson.c.steps[nextLesson.i].t) + '</span></div>' +
+        '<button class="btn primary" data-course="' + esc(nextLesson.c.id) + '">Продолжить →</button></div>';
+    }
     h += '<div class="card sumcard">' + ring(s.done, s.n) + '<div><div class="big">' + fmt(s.doneMin) + ' из ' + fmt(s.totalMin) + '</div><div class="muted">' + sub + '</div></div></div>';
     h += '<div class="modes" role="group" aria-label="Тип дня">' + MODES.map(function (x) { return '<button data-mode="' + x[0] + '" aria-pressed="' + (m === x[0]) + '">' + x[1] + '</button>'; }).join('') + '</div>';
     h += '<div class="card" style="padding:4px 0"><ul class="tasks">';
@@ -283,7 +295,7 @@
     var h = '<div class="row" style="gap:14px"><div class="title"><h1 class="h1">' + c.name + '</h1><div class="muted">Цель: ' + esc(c.goal) + '</div></div>' +
       (c.level ? '<div class="lvl" style="background:' + col + '"><b>' + c.level + '</b><span>цель ' + c.target + '</span></div>' : '') + '</div>';
     if (si >= 0) h += stepHero(c, si);
-    else h += '<div class="hero"><div class="tl">Все уроки и экзамены пройдены</div><div class="pl">Claude добавит следующий блок в обновлении.</div></div>';
+    else h += '<div class="hero"><div class="tl">Все уроки и экзамены пройдены</div><div class="pl">Новые материалы появятся в следующих обновлениях.</div></div>';
     h += '<div class="card" style="padding:4px 0"><ul class="path">';
     c.steps.forEach(function (s, i) {
       var x = stepState(c, i), cur = i === si, ic, stx = '';
