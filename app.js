@@ -1,6 +1,6 @@
 (function () {
   'use strict';
-  var APP_VERSION = '3.4';
+  var APP_VERSION = '4.0';
   var P = window.PLAN, COURSES = window.COURSES;
   var DOW = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
   var DOWF = ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота', 'Воскресенье'];
@@ -38,17 +38,64 @@
   function course(id) { for (var i = 0; i < COURSES.length; i++) if (COURSES[i].id === id) return COURSES[i]; return null; }
 
   // ---------- хранение ----------
-  var KEY = 'dnevnik-state';
+  var KEY = 'dnevnik-state', BACKUP_KEY = 'dnevnik-state-backup';
+  var storageProblem = '', storageReadOnly = false, recoveryNotice = '';
   var st = {};
   function fixState() {
-    ['modes', 'checks', 'lessons', 'exams', 'counters', 'books', 'reflect', 'extraTasks'].forEach(function (k) { if (!st[k] || typeof st[k] !== 'object' || Array.isArray(st[k])) st[k] = {}; });
+    ['modes', 'checks', 'lessons', 'exams', 'counters', 'books', 'reflect', 'extraTasks', 'practice'].forEach(function (k) { if (!st[k] || typeof st[k] !== 'object' || Array.isArray(st[k])) st[k] = {}; });
     ['booksAdded', 'tracks'].forEach(function (k) { if (!Array.isArray(st[k])) st[k] = []; });
   }
+  function plain(o) { return !!o && typeof o === 'object' && !Array.isArray(o); }
+  function safeTree(o,depth) {
+    if(depth>40)return false;
+    return !o || typeof o!=='object' || Object.keys(o).every(function(k){return ['__proto__','prototype','constructor'].indexOf(k)<0 && k.indexOf('\u001f')<0 && safeTree(o[k],depth+1);});
+  }
+  function validCount(n) { return Number.isInteger(n) && n >= 0; }
+  function validAttempt(a) {return plain(a) && typeof a.d==='string' && validCount(a.n) && a.n>0 && validCount(a.ok) && a.ok<=a.n && (a.at==null || Number.isFinite(a.at));}
+  function validExam(e) {
+    return plain(e) && validCount(e.n) && e.n>0 && validCount(e.best) && e.best<=e.n && (e.last==null || validCount(e.last) && e.last<=e.n) &&
+      (e.passed==null || typeof e.passed==='boolean') && Array.isArray(e.wrong) && e.wrong.every(function(w) {return plain(w) && ['q','your','right','s'].every(function(k){return typeof w[k]==='string';});}) &&
+      (e.attempts==null || Array.isArray(e.attempts) && e.attempts.every(validAttempt)) &&
+      (e.weak==null || Array.isArray(e.weak) && e.weak.every(function(w){return typeof w==='string';})) &&
+      (e.by==null || plain(e.by) && Object.keys(e.by).every(function(k){var b=e.by[k];return Array.isArray(b) && b.length===2 && validCount(b[0]) && validCount(b[1]) && b[1]>0 && b[0]<=b[1];}));
+  }
+  function validState(o) {
+    if (!plain(o) || !plain(o.checks) || !safeTree(o,0)) return false;
+    return ['modes','lessons','exams','counters','books','reflect','extraTasks','practice'].every(function (k) { return o[k] == null || plain(o[k]); }) &&
+      ['booksAdded','tracks'].every(function (k) { return o[k] == null || Array.isArray(o[k]); }) &&
+      (o.tracks || []).every(function(t) {return plain(t) && typeof t.name === 'string' && Number.isInteger(t.stage) && t.stage >= 0 && t.stage <= 5;}) &&
+      (o.booksAdded || []).every(function(b) {return plain(b) && typeof b.id === 'string' && typeof b.t === 'string';}) &&
+      Object.keys(o.reflect || {}).every(function(k) {return plain(o.reflect[k]) && Object.keys(o.reflect[k]).every(function(f) {return typeof o.reflect[k][f] === 'string';});}) &&
+      Object.keys(o.counters || {}).every(function(k) {return plain(o.counters[k]);}) &&
+      Object.keys(o.books || {}).every(function(k) {return plain(o.books[k]);}) &&
+      Object.keys(o.lessons || {}).every(function(k) {return typeof o.lessons[k] === 'string';}) &&
+      Object.keys(o.practice || {}).every(function(k) {var p=o.practice[k];return plain(p) && validCount(p.n) && p.n>0 && validCount(p.last) && p.last<=p.n && Array.isArray(p.wrong) && p.wrong.every(function(i){return validCount(i) && i<p.n;}) && (p.attempts==null || Array.isArray(p.attempts) && p.attempts.every(validAttempt));}) &&
+      Object.keys(o.checks).every(function (k) { return plain(o.checks[k]); }) &&
+      Object.keys(o.exams || {}).every(function (k) { return validExam(o.exams[k]); }) &&
+      Object.keys(o.extraTasks || {}).every(function (k) { return Array.isArray(o.extraTasks[k]) && o.extraTasks[k].every(function(t) {return plain(t) && typeof t.id==='string' && typeof t.t==='string' && Number.isFinite(t.min) && t.min>=0;}); }) &&
+      (o.backupAt==null || typeof o.backupAt==='string');
+  }
+  function readState(raw) { try { var o = JSON.parse(raw); return validState(o) ? o : null; } catch (e) { return null; } }
   function load() {
-    try { var r = localStorage.getItem(KEY); if (r) { var o = JSON.parse(r); if (o && typeof o === 'object') st = o; } } catch (e) {}
+    try {
+      var raw = localStorage.getItem(KEY), old = raw ? readState(raw) : null;
+      if (old) st = old;
+      else {
+        var backup = readState(localStorage.getItem(BACKUP_KEY));
+        if (backup) { st = backup; recoveryNotice = 'Прогресс восстановлен из резервного снимка.'; localStorage.setItem(KEY, JSON.stringify(st)); }
+        else if (raw) { storageReadOnly = true; storageProblem = 'Файл прогресса повреждён. Оригинал сохранён. Восстанови свою копию в разделе «Мой рост».'; }
+      }
+    } catch (e) { storageProblem = 'Хранилище недоступно. Изменения не сохранены: сохрани копию в файл.'; }
     fixState();
   }
-  function persist() { try { localStorage.setItem(KEY, JSON.stringify(st)); return true; } catch (e) { return false; } }
+  function persist() {
+    if (storageReadOnly) return false;
+    try {
+      var before = localStorage.getItem(KEY), next = JSON.stringify(st);
+      if (before && before !== next && readState(before)) localStorage.setItem(BACKUP_KEY, before);
+      localStorage.setItem(KEY, next); storageProblem = ''; return true;
+    } catch (e) { storageProblem = 'Изменения не сохранены. Память браузера недоступна или заполнена. Сохрани прогресс в файл.'; return false; }
+  }
   function save() { if (!persist()) toast('Не получилось сохранить'); schedSync(); }
 
   // ---------- курсы ----------
@@ -148,7 +195,7 @@
 
   // ---------- экран ----------
   var today = rawToday(), sel = clamp(today);
-  var V = { tab: 'today', page: null, course: null, step: null };
+  var V = { tab: 'today', page: null, course: null, step: null, week: Math.floor(clamp(today) / 7) };
   var EX = null, LS = null, CARDS = null, pendingDel = null;
   try { var h0 = location.hash.slice(1); if (h0 === 'learn' || h0 === 'growth') V.tab = h0; } catch (e) {}
   var app = document.getElementById('app');
@@ -165,56 +212,55 @@
     return '<a class="btn ' + (cls || 'primary') + '" href="' + CLAUDE_URL + '" target="_blank" rel="noopener" data-copy="' + esc(text) + '">' + label + '</a>';
   }
 
+  function resumeTarget() {
+    var last = st.lastStudy, c, i;
+    if (last && (c = course(last.cid)) && c.type === 'path') {
+      i = c.steps.findIndex(function (s) { return s.id === last.sid; });
+      if (i >= 0 && !stepDone(c.steps[i]) && stepState(c, i) === 'open') return {c:c,i:i};
+      i = nextIdx(c); if (i >= 0 && stepState(c,i) === 'open') return {c:c,i:i};
+    }
+    for (var k = 0; k < COURSES.length; k++) {
+      c = COURSES[k]; if (c.type !== 'path') continue;
+      i = nextIdx(c); if (i >= 0 && stepState(c,i) === 'open') return {c:c,i:i};
+    }
+    return null;
+  }
+  function resumeCard() {
+    var x = resumeTarget();
+    if (!x) return '<div class="study-focus"><span class="eyebrow">Отличная работа</span><h2>Все доступные блоки пройдены</h2><p>Можно повторить материал в разделе «Обучение».</p><button class="btn primary" data-tab="learn">К направлениям →</button></div>';
+    var s = x.c.steps[x.i], ps = pathStats(x.c), saved = st.session && st.session.cid === x.c.id && st.session.i === x.i;
+    return '<div class="study-focus"><div class="focus-copy"><span class="eyebrow">' + (saved ? 'Продолжи с того же места' : 'Твой следующий шаг') + '</span><h2>' + esc(s.exam ? 'Пора проверить знания' : x.c.name) + '</h2><p>' + esc(s.t) + '</p><span class="focus-meta">' + ps.lesDone + ' из ' + ps.les + ' уроков · ' + Math.round(ps.pct * 100) + '% пути</span></div>' +
+      '<button class="btn primary" data-act="resume">' + (s.exam ? 'Начать экзамен' : saved ? 'Продолжить урок' : 'Начать урок') + ' ' + I.right + '</button></div>';
+  }
+  function taskRow(x, priority) {
+    var on = isDone(sel,x.id), c = course(x.cat);
+    return '<li class="task' + (on ? ' done' : '') + (priority ? ' priority-task' : '') + '"><button class="chk" data-task="' + esc(x.id) + '" aria-pressed="' + on + '" aria-label="' + (on ? 'Снять отметку: ' : 'Отметить: ') + esc(x.t) + '">' + I.check + '</button>' +
+      '<div class="tb"><div class="tt"><i class="dot" style="background:var(--c-' + esc(x.cat) + ')"></i><span>' + esc(x.t) + '</span></div>' + (x.n ? '<div class="tn">' + esc(x.n) + '</div>' : '') +
+      (c && !on ? '<button class="go" data-course="' + c.id + '">' + (c.type === 'path' ? 'Открыть урок' : 'Открыть') + ' →</button>' : '') + '</div><span class="min">' + x.min + '<small>мин</small></span></li>';
+  }
+
   // ----- Сегодня -----
   function viewToday() {
-    var d = dateOf(sel), s = stat(sel), m = modeOf(sel), wk = Math.floor(sel / 7), rt = rawToday();
-    var left = s.n - s.done, sub = (s.n && !left) ? 'Все дела на день сделаны.' : 'Осталось ' + left + ' ' + plural(left, 'дело', 'дела', 'дел') + '.';
-    var sk = streak(); if (sk) sub += ' Серия: ' + sk + ' ' + plural(sk, 'день', 'дня', 'дней') + ' подряд.';
-    var h = '<section class="view"><div class="brand"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="var(--done)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21v-8M12 13C12 8 8 6 4 6c0 4 3 7 8 7zM12 15c0-4 3-6 8-6 0 4-3 6-8 6z"/></svg><b>Росток</b><span>Обрастать мясом</span></div><div class="daynav">' +
-      '<button class="nav" data-act="prev" aria-label="Предыдущий день"' + (sel === 0 ? ' disabled' : '') + '>' + I.left + '</button>' +
-      '<div class="title"><div class="eyebrow">' + (sel === rt ? 'Сегодня · ' : '') + 'неделя ' + (wk + 1) + ' · день ' + (sel + 1) + ' из ' + N + '</div>' +
-      '<h1 class="h1">' + DOWF[sel % 7] + ', ' + d.getDate() + ' ' + MON[d.getMonth()] + '</h1>' +
-      (sel !== clamp(rt) ? '<button class="back" data-act="gotoday">Вернуться к сегодня</button>' : '') + '</div>' +
-      '<button class="nav" data-act="next" aria-label="Следующий день"' + (sel === N - 1 ? ' disabled' : '') + '>' + I.right + '</button></div>';
-    if (rt < 0 && sel === 0) h += '<p class="muted">План начинается в понедельник, ' + START.getDate() + ' ' + MON[START.getMonth()] + '.</p>';
-    openExams().slice(0, 1).forEach(function (x) {
-      h += '<div class="banner"><div class="tb"><b>Экзамен открыт</b>' + esc(x.c.name) + ', ' + esc(x.c.steps[x.i].t.replace('Экзамен: ', '')) + '</div>' +
-        '<button class="btn primary" data-exam="' + x.c.id + ':' + x.i + '">Сдать</button></div>';
-    });
+    var d = dateOf(sel), s = stat(sel), wk = Math.floor(sel / 7), rt = rawToday();
+    var pending = s.tasks.filter(function (x) { return !isDone(sel,x.id); });
+    var priority = pending.slice(0,3), rest = s.tasks.filter(function (x) { return priority.indexOf(x) < 0; });
+    var pct = s.n ? Math.round(s.done / s.n * 100) : 0;
+    var h = '<section class="view today-view"><header class="page-head"><div class="brand"><span class="brand-mark">р.</span><b>Росток</b><span>Каждый день — чуть дальше</span></div><span class="edition">ЛИЧНЫЙ ПЛАН / ' + APP_VERSION + '</span></header>' +
+      '<div class="daynav"><button class="nav" data-act="prev" aria-label="Предыдущий день"' + (sel === 0 ? ' disabled' : '') + '>' + I.left + '</button><div class="title"><span class="eyebrow">Неделя ' + (wk + 1) + ' · день ' + (sel + 1) + ' из ' + N + '</span><h1 class="h1">' + (sel === rt ? 'Сегодня — твой день.' : d.getDate() + ' ' + MON[d.getMonth()]) + '</h1><p class="muted">' + DOWF[sel % 7] + ', ' + d.getDate() + ' ' + MON[d.getMonth()] + (sel !== clamp(rt) ? ' · <button class="back" data-act="gotoday">К сегодня</button>' : '') + '</p></div><button class="nav" data-act="next" aria-label="Следующий день"' + (sel === N - 1 ? ' disabled' : '') + '>' + I.right + '</button></div>';
+    if (rt < 0) h += '<p class="muted">План начнётся ' + START.getDate() + ' ' + MON[START.getMonth()] + '.</p>';
+    h += resumeCard() + '<div class="today-grid"><div class="day-plan"><div class="section-head"><div><span class="eyebrow">Фокус дня</span><h2>Три главных дела</h2></div><span class="pill">' + pending.length + ' осталось</span></div>';
+    h += priority.length ? '<ul class="tasks priority-list">' + priority.map(function (x) { return taskRow(x,true); }).join('') + '</ul>' : '<div class="empty-state"><span>✓</span><h3>На сегодня всё</h3><p>Хороший повод отдохнуть. Завтра продолжим.</p></div>';
+    if (rest.length) h += '<details class="remaining-tasks"><summary>Остальной план <span>' + rest.length + '</span></summary><ul class="tasks">' + rest.map(function (x) { return taskRow(x,false); }).join('') + '</ul></details>';
+    h += '</div><aside class="day-side"><div class="day-progress"><span class="eyebrow">Твой ритм</span><div class="progress-value">' + pct + '<small>%</small></div>' + bar(pct/100,'var(--done)') + '<p><b>' + s.done + ' из ' + s.n + '</b> дел выполнено</p><div class="mini-stats"><span><b>' + fmtShort(s.doneMin) + '</b>из ' + fmtShort(s.totalMin) + ' по плану</span><span><b>' + streak() + ' дней</b>подряд</span></div><span class="small">Время считается по выполненным делам, а не по таймеру.</span></div>';
+    h += '<div class="mode-card"><h3>Какой сегодня день?</h3><p class="small">Подстрой нагрузку под свой график.</p><div class="modes" role="group" aria-label="Тип дня">' + MODES.map(function (x) { return '<button data-mode="' + x[0] + '" aria-pressed="' + (modeOf(sel) === x[0]) + '">' + x[1] + '</button>'; }).join('') + '</div></div>';
     var bd = backupDays();
-    if (hasProgress() && (bd === null || bd >= 7)) {
-      h += '<div class="banner"><div class="tb"><b>Сохрани копию</b>' + (bd === null ? 'Копию прогресса ты ещё не делал.' : 'Копию не делал ' + bd + ' ' + plural(bd, 'день', 'дня', 'дней') + '.') + '</div>' +
-        '<button class="btn primary" data-act="export">Сохранить</button></div>';
-    }
-    // Основное действие дня: быстрый возврат к ближайшему доступному уроку.
-    var nextLesson = null;
-    COURSES.some(function (c) {
-      if (c.type !== 'path') return false;
-      var i = nextIdx(c);
-      if (i >= 0 && c.steps[i] && !c.steps[i].exam) { nextLesson = { c: c, i: i }; return true; }
-      return false;
-    });
-    if (nextLesson) {
-      h += '<div class="daily-focus"><div class="daily-focus-copy"><span class="eyebrow">Твой следующий шаг</span><strong>' + esc(nextLesson.c.name) + '</strong><span>' + esc(nextLesson.c.steps[nextLesson.i].t) + '</span></div>' +
-        '<button class="btn primary" data-course="' + esc(nextLesson.c.id) + '">Продолжить →</button></div>';
-    }
-    h += '<div class="card sumcard">' + ring(s.done, s.n) + '<div><div class="big">' + fmt(s.doneMin) + ' из ' + fmt(s.totalMin) + '</div><div class="muted">' + sub + '</div></div></div>';
-    h += '<div class="modes" role="group" aria-label="Тип дня">' + MODES.map(function (x) { return '<button data-mode="' + x[0] + '" aria-pressed="' + (m === x[0]) + '">' + x[1] + '</button>'; }).join('') + '</div>';
-    h += '<div class="card" style="padding:4px 0"><ul class="tasks">';
-    s.tasks.forEach(function (x) {
-      var on = isDone(sel, x.id), c = course(x.cat);
-      h += '<li class="task' + (on ? ' done' : '') + '"><button class="chk" data-task="' + esc(x.id) + '" aria-pressed="' + on + '" aria-label="' + (on ? 'Снять отметку: ' : 'Отметить: ') + esc(x.t) + '">' + I.check + '</button>' +
-        '<div class="tb"><div class="tt"><i class="dot" style="background:var(--c-' + esc(x.cat) + ')"></i><span>' + esc(x.t) + '</span></div>' +
-        (x.n ? '<div class="tn">' + esc(x.n) + '</div>' : '') +
-        (c && !on ? '<button class="go" data-course="' + c.id + '">' + (c.type === 'path' ? 'Открыть урок' : 'Открыть') + ' →</button>' : '') + '</div>' +
-        '<div class="min">' + x.min + ' мин</div></li>';
-    });
-    return h + '</ul></div></section>';
+    if (hasProgress() && (bd === null || bd >= 7)) h += '<div class="backup-hint"><span>Сохрани свой путь</span><p class="small">Файл копии поможет перенести прогресс на другое устройство.</p><button class="btn" data-act="export">Сохранить копию</button></div>';
+    return h + '</aside></div></section>';
   }
 
   // ----- Обучение: список -----
   function viewLearn() {
-    var h = '<section class="view"><div class="title"><h1 class="h1">Обучение</h1><div class="muted">' + COURSES.length + ' направлений. У каждого свой путь и свои единицы прогресса.</div></div>';
+    var h = '<section class="view learn-view"><div class="page-heading"><span class="eyebrow">Твоя библиотека</span><h1 class="h1">Учиться. Пробовать. Расти.</h1><p class="muted">Выбери направление и двигайся в своём темпе.</p></div>' + resumeCard() + '<div class="course-grid">';
     COURSES.forEach(function (c) {
       var col = 'var(--c-' + c.cat + ')', right = '', inner = '', l = '', r = '';
       if (c.type === 'path') {
@@ -247,7 +293,7 @@
       h += '<button class="ccard" data-course="' + c.id + '"><div class="row"><i class="dot" style="width:10px;height:10px;border-radius:3px;background:' + col + '"></i><span class="nm">' + c.name + '</span>' + right + '</div>' + inner +
         '<div class="sub"><span>' + esc(l) + '</span><span>' + esc(r) + '</span></div></button>';
     });
-    return h + '</section>';
+    return h + '</div></section>';
   }
 
   // ----- Обучение: направление -----
@@ -361,12 +407,39 @@
   function md(s) { return esc(s).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>'); }
   function startLesson(cid, i) {
     var c = course(cid), s = c.steps[i];
+    if (stepState(c,i) === 'locked' || s.exam || !s.ex || !s.theory) return;
+    if (validSession(st.session) && st.session.cid === cid && st.session.i === i) {
+      LS = JSON.parse(JSON.stringify(st.session)); V.tab = 'learn'; V.course = cid; V.page = 'lesson'; render(); window.scrollTo(0,0); return;
+    }
     var qs = s.ex.map(function (q) {
       var idx = shuffle(q.options.map(function (x, j) { return j; }));
-      return { q: q.q, options: idx.map(function (j) { return q.options[j]; }), right: idx.indexOf(0), pick: null };
+      return { q: q.q, options: idx.map(function (j) { return q.options[j]; }), right: idx.indexOf(0), pick: null, why: q.explanation || q.why || '' };
     });
-    LS = { cid: cid, i: i, qs: qs };
+    LS = { cid: cid, i: i, qs: qs, phase: 'theory', retry: false };
+    st.lastStudy = {cid:cid,sid:s.id,at:Date.now()};
+    V.tab = 'learn'; V.course = cid; rememberLesson();
     V.page = 'lesson'; render(); window.scrollTo(0, 0);
+  }
+  function validSession(x) {
+    if (!plain(x)) return false;
+    var c = course(x.cid), s = c && c.steps && c.steps[x.i];
+    return !!(s && Number.isInteger(x.i) && !s.exam && s.ex && (x.firstScore==null || validCount(x.firstScore) && x.firstScore<=s.ex.length) && (x.retry==null || typeof x.retry==='boolean') &&
+      (!x.retry || Array.isArray(x.retrySet) && x.retrySet.length>0 && x.retrySet.every(function(i){return Number.isInteger(i)&&i>=0&&i<s.ex.length;}) && x.firstScore!=null) && Array.isArray(x.qs) && x.qs.length === s.ex.length && x.qs.every(function (q,j) {
+      if(x.retry && q && q.pick==null && x.retrySet.indexOf(j)<0)return false;
+      return plain(q) && q.q === s.ex[j].q && Array.isArray(q.options) && JSON.stringify(q.options.slice().sort())===JSON.stringify(s.ex[j].options.slice().sort()) && q.options[q.right] === s.ex[j].options[0] && (q.pick == null || Number.isInteger(q.pick) && q.pick >= 0 && q.pick < q.options.length);
+    }));
+  }
+  function rememberLesson() { st.session = JSON.parse(JSON.stringify(LS)); save(); }
+  function explanation(c, s, q) {
+    return q.why ? md(q.why) : md(s.theory ? s.theory.rule : 'Повтори правило по этой теме.') + (s.theory && s.theory.ex.length ? '<div class="explain-example">Например: ' + esc(s.theory.ex[0][0]) + ' — ' + esc(s.theory.ex[0][1]) + '</div>' : '');
+  }
+  function resumeStudy() {
+    var x = resumeTarget(); if (!x) { go('learn'); return; }
+    V.tab = 'learn'; V.course = x.c.id; V.step = x.i;
+    var s = x.c.steps[x.i];
+    if (s.exam) startExam(x.c.id,x.i);
+    else if (s.ex && s.theory) startLesson(x.c.id,x.i);
+    else go('learn','course',{course:x.c.id,step:x.i});
   }
   // ----- Текст стихов: русские классики подгружаются с Викитеки (общественное достояние), для переводов и английских оригиналов только ссылка -----
   var PC = {}, PP = {};
@@ -429,51 +502,71 @@
     var c = course(LS.cid), s = c.steps[LS.i], th = s.theory, col = 'var(--c-' + c.cat + ')';
     var answered = LS.qs.filter(function (q) { return q.pick != null; }).length, n = LS.qs.length;
     var okN = LS.qs.filter(function (q) { return q.pick === q.right; }).length;
-    var h = '<section class="view"><button class="back" data-act="endlesson">‹ ' + esc(c.name) + '</button>' +
-      '<div class="title"><div class="eyebrow">' + (c.unit === 'правило' ? 'Правило ' : 'Урок ') + lessonNo(c, LS.i) + '</div><h1 class="h1">' + esc(s.t) + '</h1></div>' +
-      '<div class="card qcard"><h2 class="h2">Правило</h2><div class="rule" style="border-color:' + col + '">' + md(th.rule) + '</div>' +
-      th.ex.map(function (e) { return '<div class="exm"><span class="ex">' + esc(e[0]) + '</span> <span class="small">' + esc(e[1]) + '</span></div>'; }).join('') +
-      (th.tip ? '<div class="small">' + md(th.tip) + '</div>' : '') + '</div>' + poemBlock(s) +
-      '<div class="spread"><h2 class="h2">Упражнения</h2><span class="small">' + answered + ' из ' + n + '</span></div>' +
-      '<div class="qbar" style="grid-template-columns:repeat(' + n + ',minmax(0,1fr))">' + LS.qs.map(function (q) { return '<i class="' + (q.pick == null ? '' : q.pick === q.right ? 'ok' : 'no') + '"></i>'; }).join('') + '</div>';
+    var h = '<section class="view lesson-view"><div class="lesson-top"><button class="back" data-act="endlesson">' + I.left + esc(c.name) + '</button><span class="save-indicator">Ответы сохраняются</span></div>' +
+      '<div class="page-heading"><span class="eyebrow">' + (c.unit === 'правило' ? 'Правило ' : 'Урок ') + lessonNo(c, LS.i) + ' / ' + pathStats(c).les + '</span><h1 class="h1">' + esc(s.t) + '</h1></div>' +
+      '<div class="lesson-stages"><span class="stage done">01 · Теория</span><span class="stage' + (answered ? ' done' : ' active') + '">02 · Практика</span><span class="stage' + (answered === n ? ' active' : '') + '">03 · Итог</span></div>' +
+      '<details class="card theory-details"' + (!answered ? ' open' : '') + '><summary>Правило и примеры</summary><div class="theory-content"><div class="rule" style="border-color:' + col + '">' + md(th.rule) + '</div>' +
+      th.ex.map(function (e) { return '<div class="exm"><span class="ex">' + esc(e[0]) + '</span><span class="small">' + esc(e[1]) + '</span></div>'; }).join('') + (th.tip ? '<div class="tip">' + md(th.tip) + '</div>' : '') + '</div></details>' + poemBlock(s) +
+      '<div class="section-head" id="practice"><h2>' + (LS.retry ? 'Работа над ошибками' : 'Проверь себя') + '</h2><span class="pill">' + answered + '/' + n + '</span></div>' +
+      '<div class="qbar" role="img" aria-label="Ответов ' + answered + ' из ' + n + '" style="grid-template-columns:repeat(' + n + ',minmax(0,1fr))">' + LS.qs.map(function (q) { return '<i class="' + (q.pick == null ? '' : q.pick === q.right ? 'ok' : 'no') + '"></i>'; }).join('') + '</div>';
     LS.qs.forEach(function (q, qi) {
+      if (LS.retry && LS.retrySet.indexOf(qi) < 0) return;
       var done = q.pick != null;
-      h += '<div class="card qcard"><div class="qtext sm">' + esc(q.q) + '</div><div class="opts row2">' + q.options.map(function (o, oi) {
+      h += '<div class="card qcard exercise-card"><span class="eyebrow">Вопрос ' + (qi + 1) + '</span><div class="qtext sm">' + esc(q.q) + '</div><div class="opts row2">' + q.options.map(function (o, oi) {
         var cls = 'opt';
         if (done) { if (oi === q.right) cls += ' right'; else if (oi === q.pick) cls += ' wrong'; }
         return '<button class="' + cls + '" data-lp="' + qi + ':' + oi + '"' + (done ? ' disabled' : '') + '>' + esc(o) + '</button>';
       }).join('') + '</div>' +
-      (done ? (q.pick === q.right ? '<div class="feedback ok"><b>Верно.</b></div>' : '<div class="feedback no"><b>Неверно.</b> Правильно: <b>' + esc(q.options[q.right]) + '</b></div>') : '') + '</div>';
+      (done ? '<div class="feedback ' + (q.pick === q.right ? 'ok' : 'no') + '"><b>' + (q.pick === q.right ? 'Верно.' : 'Пока нет. Правильный ответ: ' + esc(q.options[q.right])) + '</b><div class="explanation"><strong>Почему так</strong><p>' + explanation(c,s,q) + '</p></div></div>' : '') + '</div>';
     });
-    if (answered < n) h += '<button class="btn block" disabled>Ответь на все упражнения (осталось ' + (n - answered) + ')</button>';
-    else h += '<div class="card"><b>Верно ' + okN + ' из ' + n + '.</b> ' + (okN / n < 0.75 ? 'Тема слабая: завтра она появится в плане на повторение.' : 'Хороший результат.') + '</div>' +
-      '<button class="btn primary block" data-act="lessondone">' + (st.lessons[s.id] ? 'Готово' : 'Урок пройден') + '</button>';
+    if (answered < n) h += '<p class="muted">Ответь на оставшиеся вопросы: ' + (n - answered) + '. Можно вернуться позже — ответы сохранятся.</p>';
+    else {
+      h += '<div class="lesson-result"><span class="eyebrow">' + (LS.retry ? 'После повторения' : 'Результат практики') + '</span><h2>' + okN + ' из ' + n + ' — ' + (okN === n ? 'отлично!' : 'есть над чем поработать') + '</h2><p>Первая попытка: ' + (LS.firstScore == null ? okN : LS.firstScore) + ' из ' + n + '. Повторение помогает разобраться, но не меняет эту оценку.</p></div>';
+      if (okN < n) h += '<button class="btn" data-act="retrywrong">Повторить только ошибки (' + (n - okN) + ')</button>';
+      h += '<button class="btn primary block" data-act="lessondone">' + (st.lessons[s.id] ? 'Завершить повторение' : 'Завершить урок') + ' →</button>';
+    }
     return h + '</section>';
   }
   function finishLesson() {
+    if (!LS || LS.qs.some(function(q) { return q.pick == null; })) return;
     var c = course(LS.cid), s = c.steps[LS.i], n = LS.qs.length;
-    var okN = LS.qs.filter(function (q) { return q.pick === q.right; }).length;
-    if (okN / n < 0.75) {
+    var okN = LS.firstScore == null ? LS.qs.filter(function (q) { return q.pick === q.right; }).length : LS.firstScore;
+    var wrong = []; LS.qs.forEach(function(q,j) {if(q.pick !== q.right) wrong.push(j);});
+    var previous = st.practice[s.id] || {};
+    st.practice[s.id] = {last:okN,n:n,wrong:wrong,attempts:(previous.attempts || []).concat([{d:isoOf(new Date()),at:Date.now(),ok:okN,n:n}]).slice(-30)};
+    if (wrong.length && okN / n < 0.75) {
       var tm = new Date(); tm.setDate(tm.getDate() + 1); var tk = isoOf(tm), id = 'rep-' + s.id;
       st.extraTasks[tk] = st.extraTasks[tk] || [];
       if (!st.extraTasks[tk].some(function (x) { return x.id === id; })) st.extraTasks[tk].push({ id: id, cat: c.cat, t: 'Повторить: ' + s.t, min: 15, n: 'В уроке были ошибки.' });
     }
-    if (!st.lessons[s.id]) { st.lessons[s.id] = isoOf(new Date()); toast('+20 очков. Урок пройден'); }
-    save(); LS = null; V.page = 'course'; V.step = null; render(); window.scrollTo(0, 0);
+    var earned = !st.lessons[s.id];
+    if (earned) st.lessons[s.id] = isoOf(new Date());
+    V.completed = {cid:c.id,i:LS.i,ok:okN,n:n,earned:earned};
+    delete st.session; save(); LS = null; V.page = 'completed'; V.step = null; render(); window.scrollTo(0, 0);
+  }
+  function viewCompleted() {
+    var r = V.completed, c = course(r.cid), ni = nextIdx(c), next = ni >= 0 ? c.steps[ni] : null;
+    return '<section class="view completion-view"><div class="completion-mark">✓</div><span class="eyebrow">Ещё один шаг вперёд</span><h1 class="h1">Урок завершён</h1><p class="muted">' + esc(c.steps[r.i].t) + '</p><div class="card"><strong class="completion-score">' + r.ok + '/' + r.n + '</strong><p>в первой попытке' + (r.earned ? ' · +20 очков' : '') + '</p></div>' +
+      (next && stepState(c,ni) === 'open' ? '<div class="next-preview"><span class="eyebrow">Дальше по пути</span><h2>' + esc(next.t) + '</h2><button class="btn primary block" data-act="nextlesson">' + (next.exam ? 'Перейти к экзамену' : 'Следующий урок') + ' →</button></div>' : '<p class="muted">Этот блок завершён. Посмотри другие направления.</p>') + '<button class="btn block" data-course="' + c.id + '">К программе курса</button><button class="back" data-tab="today">На сегодня хватит</button></section>';
   }
 
   // ----- Экзамен -----
-  function startExam(cid, i) {
+  function startExam(cid, i, review) {
     var c = course(cid), s = c.steps[i];
-    var qs = s.q.map(function (q) {
+    if (!s.exam || !s.q.length || /locked|wait/.test(stepState(c,i))) return;
+    var errors = review && st.exams[s.id] ? st.exams[s.id].wrong : null;
+    var source = errors ? s.q.filter(function(q) {return errors.some(function(w) {return w.q===q.q && w.s===q.s;});}) : s.q;
+    if (!source.length) return;
+    var qs = source.map(function (q) {
       var o = { k: q.k, s: q.s, q: q.q };
       if (q.k === 'choice') { var idx = shuffle(q.options.map(function (x, j) { return j; })); o.options = idx.map(function (j) { return q.options[j]; }); o.right = idx.indexOf(0); }
       if (q.k === 'input') o.a = q.a;
       if (q.k === 'order') { o.words = shuffle(q.words); o.a = q.a; }
       return o;
     });
-    EX = { cid: cid, i: i, qs: qs, cur: 0, res: [], pick: null, typed: '', built: [], checked: false };
-    V.page = 'exam'; render(); window.scrollTo(0, 0);
+    EX = { cid: cid, i: i, qs: qs, cur: 0, res: [], pick: null, typed: '', built: [], checked: false, review: !!review };
+    st.lastStudy = {cid:cid,sid:s.id,at:Date.now()}; save();
+    V.tab = 'learn'; V.course = cid; V.page = 'exam'; render(); window.scrollTo(0, 0);
   }
   function answerText(q) { return q.k === 'choice' ? q.options[q.right] : q.k === 'input' ? q.a[0] : q.a; }
   function check() {
@@ -489,9 +582,10 @@
   }
   function finishExam() {
     var c = course(EX.cid), s = c.steps[EX.i], n = EX.qs.length, ok = EX.res.filter(function (r) { return r && r.ok; }).length;
+    if (EX.review) { V.result = EX.cid + ':' + EX.i; EX = null; V.page = 'result'; render(); toast('Повторение: ' + ok + ' из ' + n + '. Оценка экзамена не изменена.'); return; }
     var e = st.exams[s.id] || { best: 0, n: n, attempts: [] };
     e.n = n; e.last = ok; e.best = Math.max(e.best || 0, ok); e.passed = e.passed || ok / n >= s.pass;
-    e.attempts = (e.attempts || []).concat([{ d: isoOf(new Date()), ok: ok, n: n }]).slice(-20);
+    e.attempts = (e.attempts || []).concat([{ d: isoOf(new Date()), at:Date.now(), ok: ok, n: n }]).slice(-20);
     e.wrong = EX.qs.map(function (q, j) { var r = EX.res[j]; return r && !r.ok ? { q: q.q, your: r.your, right: answerText(q), s: q.s } : null; }).filter(Boolean);
     var by = {}; EX.qs.forEach(function (q, j) { by[q.s] = by[q.s] || [0, 0]; by[q.s][1]++; if (EX.res[j] && EX.res[j].ok) by[q.s][0]++; });
     e.by = by;
@@ -532,7 +626,7 @@
         '<div class="chips">' + q.words.map(function (w, j) { return EX.built.indexOf(j) >= 0 ? '' : '<button class="chip" data-build="' + j + '"' + (EX.checked ? ' disabled' : '') + '>' + esc(w) + '</button>'; }).join('') + '</div>';
     }
     if (EX.checked) {
-      h += r.ok ? '<div class="feedback ok"><b>Верно.</b></div>' : '<div class="feedback no"><b>Неверно.</b> Правильно: <b>' + esc(answerText(q)) + '</b></div>';
+      h += '<div class="feedback ' + (r.ok ? 'ok' : 'no') + '"><b>' + (r.ok ? 'Верно.' : 'Правильно: ' + esc(answerText(q))) + '</b>' + (stp && stp.theory ? '<div class="explanation"><strong>Почему так</strong><p>' + explanation(c,stp,q) + '</p></div>' : '') + '</div>';
       h += '<button class="btn primary block" data-act="nextq">' + (EX.cur < EX.qs.length - 1 ? 'Дальше' : 'Показать результат') + '</button>';
     } else h += '<button class="btn primary block" data-act="check">Ответить</button>';
     return h + '</section>';
@@ -561,6 +655,9 @@
         e.wrong.map(function (w, j) { return (j + 1) + '. ' + w.q + '\nМой ответ: ' + w.your + '\nПравильно: ' + w.right; }).join('\n\n');
       h += claudeLink(txt, 'Разобрать ошибки с Claude', 'primary block');
     } else h += '<div class="card"><p class="muted">Ни одной ошибки.</p></div>';
+    if (e.wrong.length) h += '<button class="btn primary block" data-repeat-exam="' + c.id + ':' + p[1] + '">Повторить только ошибки</button>';
+    var next = nextIdx(c);
+    if (pass && next >= 0 && stepState(c,next) === 'open') h += '<button class="btn primary block" data-next-course="' + c.id + '">Следующий шаг →</button>';
     h += '<button class="btn block" data-course="' + c.id + '">К урокам</button></section>';
     return h;
   }
@@ -580,10 +677,44 @@
   }
 
   // ----- Мой рост -----
+  function weekStats(wk) {
+    var out = {min:0,tasks:0,lessons:0,days:0};
+    for (var d=wk*7;d<Math.min(N,wk*7+7);d++) { var s=stat(d); out.min+=s.doneMin; out.tasks+=s.done; if(s.done)out.days++; }
+    Object.keys(st.lessons).forEach(function(id) {var date=st.lessons[id];if(typeof date==='string' && date>=keyOf(wk*7) && date<=keyOf(Math.min(N-1,wk*7+6)))out.lessons++;});
+    return out;
+  }
+  function deltaText(now,before) { var d=now-before; return (d>0?'+':'')+d; }
+  function weekOverview(wk) {
+    var s=weekStats(wk),prev=wk>0?weekStats(wk-1):null;
+    return '<div class="week-panel"><div class="section-head"><div><span class="eyebrow">Смотри на путь целиком</span><h2>Твоя неделя</h2></div></div><div class="week-switch" role="group" aria-label="Выбрать неделю">' + P.weeks.map(function(w,i){return '<button data-week="'+i+'" aria-pressed="'+(wk===i)+'">'+(i+1)+'</button>';}).join('') + '</div><div class="week-summary"><span class="eyebrow">Неделя '+(wk+1)+'</span><div class="week-numbers"><div><strong>'+fmtShort(s.min)+'</strong><span>по выполненным делам</span></div><div><strong>'+s.tasks+'</strong><span>дел завершено</span></div><div><strong>'+s.lessons+'</strong><span>уроков пройдено</span></div></div><p class="week-comparison">'+(prev?'К прошлой неделе: <b>'+deltaText(s.min,prev.min)+' мин</b> · '+deltaText(s.tasks,prev.tasks)+' дел · '+deltaText(s.lessons,prev.lessons)+' уроков.':'Первая неделя — точка отсчёта. Сравнение появится со второй.')+'</p></div></div>';
+  }
+  function learningInsights() {
+    var weak={},history=[],evidence={};
+    function latest(attempts) {return (attempts||[]).reduce(function(best,a){return Math.max(best,a.at || Date.parse(a.d) || 0);},0);}
+    COURSES.forEach(function(c) {
+      if(c.type!=='path')return;
+      c.steps.forEach(function(s,i) {
+        if(!s.exam)return;
+        var e=st.exams[s.id]; if(!e)return;
+        (e.attempts||[]).forEach(function(a) {history.push({c:c,i:i,t:s.t,d:a.d,ok:a.ok,n:a.n,pass:a.ok/a.n>=s.pass});});
+        Object.keys(e.by||{}).forEach(function(sid) {var result=e.by[sid],j=c.steps.findIndex(function(x){return x.id===sid;}),at=latest(e.attempts);if(j<0 || evidence[sid]!=null && at<evidence[sid])return;evidence[sid]=at;if(result[0]/result[1]<.75)weak[sid]={c:c,i:j,ok:result[0],n:result[1]};else delete weak[sid];});
+      });
+      c.steps.forEach(function(s,i) {var p=st.practice[s.id];if(!p||s.exam || evidence[s.id]!=null && latest(p.attempts)<=evidence[s.id])return;if(p.wrong&&p.wrong.length)weak[s.id]={c:c,i:i,ok:p.last,n:p.n};else if(p.wrong)delete weak[s.id];});
+    });
+    var ids=Object.keys(weak),h='<div class="card weak-topics"><div class="section-head"><div><span class="eyebrow">Знания становятся прочнее</span><h2>Что стоит повторить</h2></div><span class="pill">'+ids.length+'</span></div>';
+    if(!ids.length)h+='<p class="muted">Пока нет тем с неразобранными ошибками. Они появятся здесь после практики и экзаменов.</p>';
+    ids.forEach(function(sid){var w=weak[sid];h+='<button class="insight-row" data-review-topic="'+w.c.id+':'+w.i+'"><span><small>'+esc(w.c.name)+'</small><b>'+esc(w.c.steps[w.i].t)+'</b></span><span>'+w.ok+'/'+w.n+' '+I.right+'</span></button>';});
+    h+='</div><div class="card exam-history"><div class="section-head"><div><span class="eyebrow">Каждая попытка — опыт</span><h2>История экзаменов</h2></div></div>';
+    history.sort(function(a,b){return String(b.d).localeCompare(String(a.d));});
+    if(!history.length)h+='<p class="muted">Пока нет попыток. Пройди уроки блока, чтобы открыть первый экзамен.</p>';
+    history.slice(0,30).forEach(function(a){h+='<button class="insight-row" data-result="'+a.c.id+':'+a.i+'"><span><small>'+esc(a.c.name)+' · '+esc(a.d)+'</small><b>'+esc(a.t)+'</b></span><span class="attempt-score '+(a.pass?'passed':'failed')+'">'+a.ok+'/'+a.n+'<small>'+(a.pass?'сдан':'на повторение')+'</small></span></button>';});
+    if(history.length>30)h+='<p class="small">Показаны 30 последних попыток.</p>';
+    return h+'</div>';
+  }
   function viewGrowth() {
     var t = totals(), sk = streak(), aw = awards(t), got = aw.filter(function (a) { return a.ok; }).length, rt = rawToday();
     var into = t.xp % XP_LEVEL;
-    var h = '<section class="view"><div class="title"><h1 class="h1">Мой рост</h1><div class="muted">' + (rt < 0 ? 'План ещё не начался' : rt >= N ? 'План пройден целиком' : 'День ' + (rt + 1) + ' из ' + N) + '</div></div>';
+    var h = '<section class="view growth-view"><div class="page-heading"><span class="eyebrow">Маленькие шаги. Настоящий результат.</span><h1 class="h1">Вот как ты растёшь.</h1><p class="muted">' + (rt < 0 ? 'План ещё не начался' : rt >= N ? 'План пройден целиком' : 'День ' + (rt + 1) + ' из ' + N) + '</p></div>' + weekOverview(V.week) + learningInsights();
     h += '<div class="card" style="display:flex;flex-direction:column;gap:8px"><div class="spread"><b style="font-family:var(--f-d);font-size:24px;font-weight:600">Уровень ' + t.level + '</b><span class="small">' + t.xp + ' ' + plural(t.xp, 'очко', 'очка', 'очков') + ' · до ' + (t.level + 1) + '-го ' + (XP_LEVEL - into) + '</span></div>' +
       '<div class="bar" style="height:10px;border-radius:5px"><i style="width:' + Math.round(into / XP_LEVEL * 100) + '%;background:var(--accent)"></i></div>' +
       '<div class="small">Очки: 1 минута занятий = 1, урок = 20, сданный экзамен = 10 за каждый верный ответ.</div></div>';
@@ -604,7 +735,7 @@
     h += '</div><div class="legend"><span><i class="sw" style="background:var(--full)"></i>всё сделано</span><span><i class="sw" style="background:var(--part)"></i>частично</span>' +
       '<span><i class="sw" style="border:2px solid var(--accent)"></i>сегодня</span><span><i class="sw" style="width:5px;height:5px;border-radius:50%;background:var(--ink)"></i>смена</span></div></div>';
     // неделя
-    var wk = Math.floor(clamp(rt) / 7), maxNorm = 1, cols = [];
+    var wk = V.week, maxNorm = 1, cols = [];
     for (var k = 0; k < 7; k++) { var cs = stat(wk * 7 + k); cols.push(cs); if (cs.totalMin > maxNorm) maxNorm = cs.totalMin; }
     var svg = '<svg viewBox="0 0 322 132" role="img" aria-label="Минуты по дням недели ' + (wk + 1) + ': ' + cols.map(function (c, k) { return DOW[k] + ' ' + c.doneMin + ' из ' + c.totalMin; }).join(', ') + '">';
     cols.forEach(function (c, k) {
@@ -651,7 +782,7 @@
   function sySave() { try { localStorage.setItem(SK, JSON.stringify(SY.cfg)); } catch (e) {} }
   function flat(x) {
     var c = {}, o = {}, tm = {}, bm = {};
-    Object.keys(x).forEach(function (k) { if (k !== 'tracks' && k !== 'booksAdded') c[k] = x[k]; });
+    Object.keys(x).forEach(function (k) { if (['tracks','booksAdded','session','lastStudy','backupAt'].indexOf(k)<0) c[k] = x[k]; });
     (x.tracks || []).forEach(function (t) { if (t && t.name != null) tm[t.name] = t.stage; });
     (x.booksAdded || []).forEach(function (b) { if (b && b.id != null) bm[b.id] = b.t; });
     c.tracksM = tm; c.booksAddedM = bm;
@@ -715,12 +846,13 @@
       return f.truncated ? fetch(f.raw_url).then(function (r) { return r.text(); }) : f.content;
     }).then(function (t) {
       var o; try { o = JSON.parse(t); } catch (e) { throw new Error('bad'); }
-      if (!o || !o.state || typeof o.state !== 'object') throw new Error('bad');
+      if (!o || !validState(o.state)) throw new Error('bad');
       return o.state;
     });
   }
   function pushGist(id, state) {
-    var files = {}; files[GFILE] = { content: JSON.stringify({ app: 'rostok-sync', v: 1, saved: new Date().toISOString(), state: state }) };
+    var shared={};Object.keys(state).forEach(function(k){if(['session','lastStudy','backupAt'].indexOf(k)<0)shared[k]=state[k];});
+    var files = {}; files[GFILE] = { content: JSON.stringify({ app: 'rostok-sync', v: 1, saved: new Date().toISOString(), state: shared }) };
     return id ? gh('PATCH', '/gists/' + id, { files: files }).then(function () { return id; })
               : gh('POST', '/gists', { description: 'Росток: прогресс (синхронизация)', public: false, files: files }).then(function (g) { return g.id; });
   }
@@ -736,6 +868,7 @@
   function schedSync() { if (!SY.cfg) return; clearTimeout(SY.timer); SY.timer = setTimeout(function () { syncNow(false); }, 6000); }
   function syncNow(manual) {
     if (!SY.cfg) return;
+    if (storageReadOnly || storageProblem) { if(manual)toast('Сначала восстанови локальное сохранение. Синхронизация приостановлена.'); return; }
     if (SY.busy) { SY.again = true; return; }
     SY.busy = true; SY.err = ''; if (manual) render();
     var gid = SY.cfg.gistId, changedLocal = false;
@@ -746,7 +879,12 @@
         changedLocal = !same(M, L);
         if (changedLocal) {
           if (!same(flat(st), L)) { SY.again = true; return null; } // пока шла сеть, ты что-то изменил: объединим в следующий раз
-          st = unflat(M); fixState(); persist();
+          var previousState=st, candidate=unflat(M);
+          if(!Object.prototype.hasOwnProperty.call(candidate,'checks'))candidate.checks={};
+          ['session','lastStudy','backupAt'].forEach(function(k){if(previousState[k]!=null)candidate[k]=previousState[k];});
+          if(!validState(candidate))throw new Error('bad');
+          st = candidate; fixState();
+          if(!persist()) {st=previousState;throw new Error('local');}
         }
         SY.cfg.base = M;
         var pr = (!remote || !same(M, R)) ? pushGist(gid, st) : Promise.resolve(gid);
@@ -779,7 +917,7 @@
     if (SY.cfg) {
       h += '<p class="muted">Включена. Прогресс объединяется через твой секретный Gist на GitHub.</p>' +
         '<p class="small" style="margin-top:6px">' + (SY.busy ? 'Синхронизирую…' : SY.err ? esc(SY.err) : SY.cfg.at ? 'Последняя синхронизация: ' + fmtAt(SY.cfg.at) : 'Ещё не синхронизировалось.') + '</p>' +
-        '<p class="small" style="margin-top:6px">Если один и тот же пункт изменён на двух устройствах сразу, остаётся поставленная отметка и большее число.</p>' +
+        '<p class="small" style="margin-top:6px">Изменения объединяются с последним снимком. При одновременном редактировании одного поля на двух устройствах возможен конфликт; перед переносом сохраняй файл копии.</p>' +
         '<div class="btns" style="margin-top:10px"><button class="btn primary" data-act="syncnow"' + (SY.busy ? ' disabled' : '') + '>Синхронизировать</button><button class="btn" data-act="syncoff">Отключить</button></div></div>';
       return h;
     }
@@ -795,11 +933,12 @@
     var html, full = false;
     if (V.page === 'exam' && EX) { html = viewExam(); full = true; }
     else if (V.page === 'lesson' && LS) { html = viewLesson(); full = true; }
+    else if (V.page === 'completed' && V.completed) { html = viewCompleted(); full = true; }
     else if (V.page === 'result') { html = viewResult(); full = true; }
     else if (V.page === 'cards' && CARDS) { html = viewCards(); full = true; }
     else if (V.tab === 'learn' && V.page === 'course') html = viewCourse();
     else html = V.tab === 'learn' ? viewLearn() : V.tab === 'growth' ? viewGrowth() : viewToday();
-    app.innerHTML = html;
+    app.innerHTML = (storageProblem ? '<div class="storage-alert" role="alert"><strong>' + esc(storageProblem) + '</strong><button class="btn" data-act="' + (storageReadOnly ? 'exportoriginal' : 'export') + '">' + (storageReadOnly ? 'Скачать оригинал' : 'Сохранить в файл') + '</button></div>' : '') + (recoveryNotice ? '<div class="recovery-notice" role="status">' + esc(recoveryNotice) + '</div>' : '') + html;
     app.className = full ? 'full' : '';
     if (V.page === 'lesson' && LS) loadPoem();
     document.getElementById('tabbar').hidden = full;
@@ -836,6 +975,10 @@
     var b = e.target.closest('button'); if (!b) return;
     var act = b.getAttribute('data-act'), v;
     if ((v = b.getAttribute('data-tab'))) { go(v); return; }
+    if ((v = b.getAttribute('data-week')) != null) { V.week = Math.max(0,Math.min(P.weeks.length-1,+v)); render(); return; }
+    if ((v = b.getAttribute('data-review-topic'))) { var topic=v.split(':'); V.tab='learn'; V.course=topic[0]; startLesson(topic[0],+topic[1]); return; }
+    if ((v = b.getAttribute('data-next-course'))) { nextInCourse(v); return; }
+    if ((v = b.getAttribute('data-repeat-exam'))) { var er=v.split(':'); startExam(er[0],+er[1],true); return; }
     if ((v = b.getAttribute('data-day')) != null) { sel = +v; go('today'); return; }
     if ((v = b.getAttribute('data-mode'))) { st.modes[keyOf(sel)] = v; save(); render(); return; }
     if ((v = b.getAttribute('data-task')) != null) {
@@ -852,7 +995,11 @@
       save(); V.step = null; render(); return;
     }
     if ((v = b.getAttribute('data-lopen'))) { var lp = v.split(':'); startLesson(lp[0], +lp[1]); return; }
-    if ((v = b.getAttribute('data-lp'))) { var lq = v.split(':'); if (LS && LS.qs[+lq[0]].pick == null) { LS.qs[+lq[0]].pick = +lq[1]; render(); } return; }
+    if ((v = b.getAttribute('data-lp'))) { var lq = v.split(':'); if (LS && LS.qs[+lq[0]].pick == null) {
+      LS.qs[+lq[0]].pick = +lq[1];
+      if (LS.firstScore == null && LS.qs.every(function(q){return q.pick!=null;})) {LS.firstScore=LS.qs.filter(function(q){return q.pick===q.right;}).length;}
+      rememberLesson(); render();
+    } return; }
     if ((v = b.getAttribute('data-exam'))) { var p = v.split(':'); startExam(p[0], +p[1]); return; }
     if ((v = b.getAttribute('data-result'))) { V.result = v; V.page = 'result'; render(); window.scrollTo(0, 0); return; }
     if ((v = b.getAttribute('data-pick')) != null) { EX.pick = +v; render(); return; }
@@ -869,6 +1016,10 @@
     }
     if ((v = b.getAttribute('data-card')) != null) { if (v === '1') CARDS.known++; if (CARDS.i < CARDS.list.length - 1) { CARDS.i++; CARDS.shown = false; } else CARDS.done = true; render(); return; }
     switch (act) {
+      case 'reloadapp': if(!EX || confirm('Экзамен будет начат заново. Обновить приложение сейчас?')) location.reload(); break;
+      case 'resume': resumeStudy(); break;
+      case 'retrywrong': LS.retrySet=[]; LS.qs.forEach(function(q,j){if(q.pick!==q.right) {LS.retrySet.push(j);q.pick=null;}}); LS.retry=true; rememberLesson(); render(); document.getElementById('practice').scrollIntoView({block:'start'}); break;
+      case 'nextlesson': nextInCourse(V.completed.cid); break;
       case 'prev': if (sel > 0) { sel--; render(); } break;
       case 'next': if (sel < N - 1) { sel++; render(); } break;
       case 'gotoday': sel = clamp(rawToday()); render(); break;
@@ -884,6 +1035,7 @@
       case 'addtrack': var tn = document.getElementById('new-track').value.trim(); if (!tn) { toast('Впиши название трека'); break; } st.tracks.push({ name: tn, stage: 0 }); save(); render(); break;
       case 'addbook': var bn = document.getElementById('new-book').value.trim(); if (!bn) { toast('Впиши название книги'); break; } st.booksAdded.push({ id: 'u' + Date.now(), t: bn }); save(); render(); break;
       case 'export': exportFile(); break;
+      case 'exportoriginal': downloadJSON(localStorage.getItem(KEY)||'', 'rostok-original.json'); break;
       case 'syncon': syncOn(); break;
       case 'syncnow': syncNow(true); break;
       case 'syncoff': syncOff(); break;
@@ -898,7 +1050,7 @@
     var t = e.target;
     if (t.id === 'ans' && EX) { EX.typed = t.value; return; }
     var f = t.getAttribute('data-rf');
-    if (f) { var wk = Math.floor(clamp(rawToday()) / 7); st.reflect[wk] = st.reflect[wk] || {}; st.reflect[wk][f] = t.value; save(); }
+    if (f) { var wk = V.week; st.reflect[wk] = st.reflect[wk] || {}; st.reflect[wk][f] = t.value; save(); updateStorageAlert(); }
   });
   document.addEventListener('change', function (e) {
     var t = e.target;
@@ -908,7 +1060,15 @@
     if (t.id === 'importFile' && t.files && t.files[0]) {
       var r = new FileReader();
       r.onload = function () {
-        try { var o = JSON.parse(r.result); if (!o || !o.state || typeof o.state.checks !== 'object') throw 0; st = o.state; fixState(); save(); render(); toast('Прогресс восстановлен из файла'); }
+        try {
+          var o = JSON.parse(r.result); if (!o || (o.app !== 'dnevnik' && o.app !== 'rostok') || !validState(o.state)) throw 0;
+          if (!confirm('Заменить текущий прогресс данными из файла? Перед заменой сохраню локальный резервный снимок.')) return;
+          var previous = st, locked = storageReadOnly;
+          if (locked) localStorage.setItem('dnevnik-state-damaged',localStorage.getItem(KEY)||'');
+          storageReadOnly = false; st = o.state; fixState();
+          if (!persist()) { st = previous; storageReadOnly = locked; render(); toast('Не удалось записать копию. Старый прогресс сохранён.'); return; }
+          LS = null; EX = null; V.page = null; recoveryNotice=''; schedSync(); render(); toast('Прогресс восстановлен из файла');
+        }
         catch (err) { toast('Это не файл копии Ростка'); }
       };
       r.readAsText(t.files[0]);
@@ -917,13 +1077,20 @@
 
   function exportFile() {
     try {
+      downloadJSON(JSON.stringify({ app: 'dnevnik', v: APP_VERSION, saved: new Date().toISOString(), state: st }, null, 1), 'rostok-' + isoOf(new Date()) + '.json');
       st.backupAt = isoOf(new Date()); save();
-      var blob = new Blob([JSON.stringify({ app: 'dnevnik', v: APP_VERSION, saved: new Date().toISOString(), state: st }, null, 1)], { type: 'application/json' });
-      var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'rostok-' + isoOf(new Date()) + '.json';
-      document.body.appendChild(a); a.click(); a.remove();
-      setTimeout(function () { URL.revokeObjectURL(a.href); }, 4000);
-      toast('Файл копии сохранён'); render();
+      toast('Скачивание копии начато. Проверь папку загрузок.'); render();
     } catch (e) { toast('Не получилось сохранить файл'); }
+  }
+  function downloadJSON(text,name) {
+    var blob = new Blob([text], {type:'application/json'}), url = URL.createObjectURL(blob), a = document.createElement('a');
+    a.href=url; a.download=name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(function(){URL.revokeObjectURL(url);},4000);
+  }
+  function updateStorageAlert() { if(storageProblem && !app.querySelector('.storage-alert')) {var el=document.createElement('div');el.className='storage-alert';el.setAttribute('role','alert');el.textContent=storageProblem;app.prepend(el);} }
+  function nextInCourse(cid) {
+    var c=course(cid),i=nextIdx(c); V.tab='learn';V.course=cid;
+    if(i<0||stepState(c,i)!=='open'){go('learn','course',{course:cid});return;}
+    if(c.steps[i].exam)startExam(cid,i);else if(c.steps[i].ex&&c.steps[i].theory)startLesson(cid,i);else go('learn','course',{course:cid,step:i});
   }
 
   document.addEventListener('visibilitychange', function () {
