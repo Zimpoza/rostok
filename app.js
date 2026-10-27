@@ -1,6 +1,6 @@
 (function () {
   'use strict';
-  var APP_VERSION = '4.3';
+  var APP_VERSION = '4.4';
   var P = window.PLAN, COURSES = window.COURSES;
   var DOW = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
   var DOWF = ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота', 'Воскресенье'];
@@ -419,7 +419,7 @@
   // ----- карточки курсов -----
   function photo(c) {
     var p = PHOTO[c.id];
-    if (p) return '<div class="cc-photo"><picture><source media="(max-width:1023px)" srcset="img/' + p + '-t.jpg"><img src="img/' + p + '-w.jpg" alt="" loading="lazy" decoding="async"></picture></div>';
+    if (p) return '<div class="cc-photo"><picture><source media="(max-width:767px)" srcset="img/' + p + '-t.jpg"><img src="img/' + p + '-w.jpg" alt="" loading="lazy" decoding="async"></picture></div>';
     return '<div class="cc-photo cc-art" style="--cc:var(--c-' + c.cat + ')">' + (CI[c.cat] || CI.plan) + '</div>';
   }
   function courseCard(c) {
@@ -603,7 +603,7 @@
   }
   function viewSettings() {
     return '<section class="view settings-view">' + topbar('Настройки') +
-      '<div class="card theme-card"><h2 class="h2">Тема</h2><p class="small">«Как в макете»: на телефоне тёмная, на компьютере светлая.</p>' + themeSwitch() + '</div>' +
+      '<div class="card theme-card"><h2 class="h2">Тема</h2><p class="small">«Как в макете»: на телефоне тёмная, на планшете и компьютере светлая.</p>' + themeSwitch() + '</div>' +
       '<div class="card"><h2 class="h2">О приложении</h2><p class="muted">Росток ' + APP_VERSION + ' · план v' + P.version + ' · старт ' + START.getDate() + ' ' + MON[START.getMonth()] + ' ' + START.getFullYear() + ', ' + N + ' дней.</p><p class="small">Данные хранятся в этом браузере. Копия и синхронизация — в разделе «Инструменты».</p><button class="btn" data-tab="tools">' + I.tools + ' Инструменты</button></div></section>';
   }
   function viewMore() {

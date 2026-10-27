@@ -244,7 +244,7 @@ button,a,input,textarea{touch-action:manipulation}button{min-height:44px}.btn{mi
 /* Росток 4.3 — по макету: тёмное боковое меню, фото-шапка со стеклянными карточками, фото-курсы, урок по шагам. */
 :root,:root[data-theme=light]{--bg:#F3F5F4;--card:#FFFFFF;--ink:#101A15;--mute:#68766E;--line:#E3E9E5;--soft:#F1F5F2;--box:#B9C4BD;--accent:#1F9D55;--accent-ink:#FFFFFF;--done:#1F9D55;--full:#1F8A4C;--part:#DCF3E4;--part-ink:#14532D;--bad:#D93636;--chart-soft:#DCEFE2;--chart-bar:#7FD3A0;--chart-full:#1F9D55;--chip:#ECF0ED;--chip-on:#1D6B3D;--chip-on-ink:#FFFFFF;--tip:#E8F6EC;--tip-ink:#1C5A35;--hero:#0F2D1F;--hero-ink:#F3FAF5;--focus-ring:rgba(31,157,85,.22);
   --c-rus:#34B36A;--c-eng:#3B82F6;--c-code:#7C5CFA;--c-ai:#F2862B;--c-poem:#E5487F;--c-read:#D9A21B;--c-music:#14A89A;--c-book:#A86B2C;--c-plan:#64748B;color-scheme:light}
-@media(max-width:1023px){:root:not([data-theme=light]){--bg:#0A0F0D;--card:#141B17;--ink:#EEF3F0;--mute:#8F9C95;--line:#212A25;--soft:#18201C;--box:#55615A;--accent:#4ADE80;--accent-ink:#06210F;--done:#4ADE80;--full:#4ADE80;--part:#163A25;--part-ink:#D7F5E2;--bad:#F87171;--chart-soft:#1D2A23;--chart-bar:#2F8F57;--chart-full:#4ADE80;--chip:#1A221E;--chip-on:#4ADE80;--chip-on-ink:#06210F;--tip:#13291C;--tip-ink:#B8EDC9;color-scheme:dark}}
+@media(max-width:767px){:root:not([data-theme=light]){--bg:#0A0F0D;--card:#141B17;--ink:#EEF3F0;--mute:#8F9C95;--line:#212A25;--soft:#18201C;--box:#55615A;--accent:#4ADE80;--accent-ink:#06210F;--done:#4ADE80;--full:#4ADE80;--part:#163A25;--part-ink:#D7F5E2;--bad:#F87171;--chart-soft:#1D2A23;--chart-bar:#2F8F57;--chart-full:#4ADE80;--chip:#1A221E;--chip-on:#4ADE80;--chip-on-ink:#06210F;--tip:#13291C;--tip-ink:#B8EDC9;color-scheme:dark}}
 :root[data-theme=dark]{--bg:#0A0F0D;--card:#141B17;--ink:#EEF3F0;--mute:#8F9C95;--line:#212A25;--soft:#18201C;--box:#55615A;--accent:#4ADE80;--accent-ink:#06210F;--done:#4ADE80;--full:#4ADE80;--part:#163A25;--part-ink:#D7F5E2;--bad:#F87171;--chart-soft:#1D2A23;--chart-bar:#2F8F57;--chart-full:#4ADE80;--chip:#1A221E;--chip-on:#4ADE80;--chip-on-ink:#06210F;--tip:#13291C;--tip-ink:#B8EDC9;color-scheme:dark}
 body{background:var(--bg);color:var(--ink);font-family:'Onest',system-ui,-apple-system,'Segoe UI',sans-serif}
 h1,h2,h3,.h1,.h2{font-family:'Onest',system-ui,sans-serif;text-transform:none}
@@ -516,8 +516,8 @@ main#app.full{padding-bottom:calc(env(safe-area-inset-bottom,0px) + 32px)}
 .overall-row{display:flex;align-items:center;gap:20px}
 .donut{flex:none}
 
-/* ===== компьютер ===== */
-@media(min-width:1024px){
+/* ===== планшет и компьютер ===== */
+@media(min-width:768px){
   .only-m{display:none!important}
   .only-d{display:revert!important}
   span.only-d,b.only-d,i.only-d{display:inline!important}
@@ -646,7 +646,7 @@ main#app.full{padding-bottom:calc(env(safe-area-inset-bottom,0px) + 32px)}
   .settings-view>*,.more-view>*,.habits-view>*{max-width:900px}
   .theme-card{display:flex!important}
 }
-@media(min-width:1024px) and (max-width:1365px){
+@media(min-width:1200px) and (max-width:1365px){
   .dir{padding:14px 12px 38px}
   .dir b{font-size:14px}
   .dir span{font-size:12px}
@@ -656,9 +656,54 @@ main#app.full{padding-bottom:calc(env(safe-area-inset-bottom,0px) + 32px)}
   .tp-list{grid-row:1/3}
   .search input{width:260px}
 }
-@media(min-width:1024px) and (max-width:1149px){.course-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(min-width:1600px){main#app>*{max-width:1320px}}
 @media(prefers-reduced-motion:reduce){.ccard{transition:none}}
-@media(max-width:1023px){:root:not([data-theme=light]) .ccard{border-color:transparent}.topbar .avatar{display:none}.learn-view .tb-title .muted{display:none}.stabs .chip{padding:0 14px}.stat-grid{display:flex;flex-direction:column;gap:16px}}
+/* ===== планшет: меню-рейка слева, сетки уже ===== */
+@media(min-width:768px) and (max-width:1199px){
+  nav#tabbar{width:84px;padding:14px 8px 12px}
+  nav#tabbar .side-brand{justify-content:center;padding:4px 0 18px;font-size:0}
+  nav#tabbar .side-brand b{display:none}
+  nav#tabbar .side-brand svg{width:30px;height:30px}
+  nav#tabbar .side-list{gap:2px}
+  nav#tabbar .tab{flex-direction:column;justify-content:center;gap:4px;height:58px;padding:0 2px;font-size:10px;text-align:center;border-radius:12px}
+  nav#tabbar .tab span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+  nav#tabbar .tab svg{width:22px;height:22px}
+  nav#tabbar .side-settings svg:last-child{display:none}
+  main#app,main#app.full{margin-left:84px;padding:20px 22px 48px}
+  .h1{font-size:28px}
+  .search input{width:200px}
+  .home-view .hero{padding:18px 24px 22px}
+  .home-view .hero-title{font-size:44px}
+  .hero-tag{font-size:19px;margin-top:10px}
+  .hero-main{flex-direction:column;gap:14px;margin-top:16px}
+  .hero-quote{margin-top:4px;max-width:420px;padding:16px 18px 10px;font-size:15.5px}
+  .dirs{grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:22px}
+  .dir{padding:14px 12px 36px;min-height:118px}
+  .dir b{font-size:14px}
+  .dir span{font-size:12px}
+  .today-panel{padding:20px 22px 22px}
+  .tp-cols{grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:12px}
+  .tp-list{grid-row:1/3}
+  .tp-overall{grid-column:2}
+  .tp-list .t-label{font-size:14px}
+  .course-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+  .cc-photo{height:132px}
+  .lesson-grid{grid-template-columns:200px minmax(0,1fr);gap:14px}
+  .lesson-main{padding:20px 22px}
+  .lesson-head{flex-direction:column;align-items:flex-start;gap:10px}
+  .l-progress{width:100%}
+  .tile b{font-size:26px}
+  .stat-grid{grid-template-columns:1fr}
+  .topbar{flex-wrap:wrap}
+  .tb-title{min-width:240px}
+}
+@media(min-width:1024px) and (max-width:1199px){
+  .course-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .stat-grid{grid-template-columns:minmax(0,1.3fr) minmax(0,1fr)}
+  .hero-main{flex-direction:row}
+  .hero-quote{max-width:280px;margin-top:20px}
+}
+@media(max-width:767px){:root:not([data-theme=light]) .ccard{border-color:transparent}.topbar .avatar{display:none}.learn-view .tb-title .muted{display:none}.stabs .chip{padding:0 14px}.stat-grid{display:flex;flex-direction:column;gap:16px}}
 </style>
 </head>
 <body>
@@ -666,9 +711,9 @@ main#app.full{padding-bottom:calc(env(safe-area-inset-bottom,0px) + 32px)}
 <nav class="tabbar" id="tabbar" aria-label="Разделы"></nav>
 <div class="toast" id="toast" hidden></div>
 <div class="modal" id="modal" hidden></div>
-<script src="plan.js?v=4.3"></script>
-<script src="courses.js?v=4.3"></script>
-<script src="app.js?v=4.3"></script>
+<script src="plan.js?v=4.4"></script>
+<script src="courses.js?v=4.4"></script>
+<script src="app.js?v=4.4"></script>
 <script>
 if ('serviceWorker' in navigator) {
   var hadController = !!navigator.serviceWorker.controller;
