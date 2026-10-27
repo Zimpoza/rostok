@@ -1,0 +1,1 @@
+{"private":true,"scripts":{"test":"node --test *.test.cjs"},"devDependencies":{"jsdom":"30.1.3"},"engines":{"node":">=24"}}
