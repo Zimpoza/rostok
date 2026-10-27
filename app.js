@@ -1,6 +1,6 @@
 (function () {
   'use strict';
-  var APP_VERSION = '4.5';
+  var APP_VERSION = '4.6';
   var P = window.PLAN, COURSES = window.COURSES;
   var DOW = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
   var DOWF = ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота', 'Воскресенье'];
@@ -452,13 +452,33 @@
     for (var i = 0; i < N; i++) { var s = stat(i); done += s.done; all += s.n; }
     return { done: done, all: all, p: all ? done / all : 0 };
   }
+  var GROWTH_RANKS = [
+    [0,'Пыль','Пока просто существуешь. Уже неплохое начало.'],
+    [30,'Грязь под ногтями','Первые следы полезной деятельности.'],
+    [100,'Червяк с амбициями','Копаешь глубже. Уже есть перспективы.'],
+    [250,'Семечко с планом','Внутри тебя явно что-то намечается.'],
+    [500,'Росток','Пробился. Теперь главное — не забывать поливать.'],
+    [1200,'Молодой дуб','Уже не согнуть первым же понедельником.'],
+    [2500,'Лесной авторитет','В твоей тени уже можно давать советы.'],
+    [5000,'Древо мудрости','Корни глубокие. Расти всё равно есть куда.']
+  ];
+  function growthRank() {
+    var xp = totals().xp, i = 0;
+    while (i < GROWTH_RANKS.length - 1 && xp >= GROWTH_RANKS[i + 1][0]) i++;
+    var rank = GROWTH_RANKS[i], next = GROWTH_RANKS[i + 1];
+    return { xp: xp, index: i, title: rank[1], desc: rank[2], next: next, into: next ? (xp-rank[0])/(next[0]-rank[0]) : 1, p: Math.min(1,xp/5000) };
+  }
+  function rankCard() {
+    var g = growthRank();
+    return '<section class="rank-card" aria-label="Твой уровень развития"><div class="rank-main"><span class="rank-symbol">'+I.leaf+'</span><div><span class="rank-label">Твой уровень развития</span><h2>'+g.title+'</h2><p>'+g.desc+'</p></div></div><div class="rank-meter"><div class="rank-meter-label"><b>'+g.xp+' XP</b><span class="rank-next">'+(g.next?'Ещё '+(g.next[0]-g.xp)+' XP до «'+g.next[1]+'»':'Высшая ступень. Продолжай расти!')+'</span></div><div class="rank-track" role="progressbar" aria-label="До следующего звания" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'+Math.floor(g.into*100)+'"><i style="width:'+Math.floor(g.into*100)+'%"></i></div></div><details class="rank-details"><summary>Все ступени роста</summary><div><p>Дела, уроки и экзамены питают твоё дерево. Минута выполненного дела по плану — 1 XP, завершённый урок — 20 XP, правильный ответ в сданном экзамене — 10 XP. Повторное прохождение урока не добавляет очки. Уже накопленный прогресс учитывается.</p><ol class="rank-ladder">'+GROWTH_RANKS.map(function(r,i){return '<li'+(i===g.index?' aria-current="step"':'')+'><span>'+r[1]+'</span><b>'+r[0]+' XP</b></li>';}).join('')+'</ol><p>При снятии отметки или восстановлении старой копии рост пересчитывается по сохранённым результатам.</p></div></details></section>';
+  }
   var PLANT_STAGES = [[0.03, 'Семечко в земле'], [0.15, 'Первый росток'], [0.35, 'Молодой побег'], [0.6, 'Саженец'], [0.85, 'Крепкое деревце'], [1, 'Почти пышное дерево'], [2, 'Пышное дерево']];
   function plantStage(p) { for (var i = 0; i < PLANT_STAGES.length; i++) if (p < PLANT_STAGES[i][0]) return PLANT_STAGES[i][1]; return PLANT_STAGES[PLANT_STAGES.length - 1][1]; }
   function plantSvg(p) {
     p = Math.max(0, Math.min(1, p));
     var g = p >= 1 ? 1 : Math.pow(p, 0.7), out = '', GY = 138;
     function sc(a, b) { return Math.max(0, Math.min(1, (g - a) / (b - a))); }
-    function leaf(x, y, ang, k, col) { return k <= 0.02 ? '' : '<path transform="translate(' + x.toFixed(1) + ' ' + y.toFixed(1) + ') rotate(' + ang + ') scale(' + k.toFixed(2) + ')" d="M0 0C5-7 15-7 20 0C15 7 5 7 0 0Z" fill="' + col + '"/>'; }
+    function leaf(x, y, ang, k, col) { return k <= 0.02 ? '' : '<g transform="translate(' + x.toFixed(1) + ' ' + y.toFixed(1) + ') rotate(' + ang + ') scale(' + k.toFixed(2) + ')"><g class="plant-leaf" style="animation-delay:-' + ((Math.abs(x+y)%7)*0.5).toFixed(1) + 's"><path d="M0 0C5-7 15-7 20 0C15 7 5 7 0 0Z" fill="' + col + '"/><path d="M1 0H17" stroke="#dcfce7" stroke-width=".5" opacity=".4"/></g></g>'; }
     var th = 3 + g * 82, tw = 2 + g * 6.5, topY = GY - th, lean = g * 2;
     out += '<ellipse cx="60" cy="' + (GY + 4) + '" rx="' + (22 + g * 14) + '" ry="6" fill="#2b1d12" opacity=".55"/><path d="M30 ' + (GY + 6) + 'Q60 ' + (GY - 8) + ' 90 ' + (GY + 6) + 'Z" fill="#4a3220"/>';
     if (p <= 0) return '<svg class="plant" viewBox="0 0 120 150" aria-hidden="true">' + out + '<ellipse cx="60" cy="' + (GY - 3) + '" rx="4" ry="2.6" fill="#a9792f"/></svg>';
@@ -492,6 +512,12 @@
       // блики
       if (cr > 0.5) out += '<circle cx="' + (tx - R * 0.35).toFixed(1) + '" cy="' + (cy - R * 0.75).toFixed(1) + '" r="' + (R * 0.22).toFixed(1) + '" fill="#bbf7d0" opacity=".55"/><circle cx="' + (tx + R * 0.45).toFixed(1) + '" cy="' + (cy - R * 0.4).toFixed(1) + '" r="' + (R * 0.16).toFixed(1) + '" fill="#bbf7d0" opacity=".45"/>';
     }
+    if (cr > 0.15) {
+      for (var li=0;li<22;li++) {
+        var la=li*2.39996, lr=Math.sqrt((li+1)/22)*(12+cr*25);
+        out += leaf(tx+Math.cos(la)*lr,topY-5+Math.sin(la)*lr*.7,-30+(li%5)*28,(.35+cr*.25)*Math.min(1,cr*3),li%2?'#4ade80':'#22c55e');
+      }
+    }
     // цветы и плоды на самом верху пути
     if (p >= 0.9) {
       var R2 = 10 + cr * 30, fk = Math.min(1, (p - 0.9) / 0.1);
@@ -502,13 +528,13 @@
     return '<svg class="plant" viewBox="0 0 120 150" aria-hidden="true">' + out + '</g></svg>';
   }
   function growPill() {
-    var pr = planProgress(), pc = Math.round(pr.p * 100);
-    return '<div class="grow-pill only-d"><b>' + plantStage(pr.p) + '</b><span>' + pr.done + ' из ' + pr.all + ' дел · ' + pc + '%</span></div>';
+    var pr = planProgress(), gp = growthRank().p, pc = Math.round(gp * 100);
+    return '<div class="grow-pill only-d"><b>' + plantStage(growthRank().p) + '</b><span>' + pr.done + ' из ' + pr.all + ' дел · ' + pc + '% роста</span></div>';
   }
   function growCard() {
-    var pr = planProgress(), pc = Math.round(pr.p * 100), stage = plantStage(pr.p);
-    return '<div class="grow" role="img" aria-label="Росток: ' + stage + ', выполнено ' + pc + '% дел плана">' +
-      '<div class="grow-t"><span class="grow-k">Твой росток</span><b>' + stage + '</b><span class="grow-s">' + pr.done + ' из ' + pr.all + ' дел · ' + pc + '%</span><i class="grow-bar"><u style="width:' + pc + '%"></u></i></div></div>';
+    var pr = planProgress(), pc = Math.round(growthRank().p * 100), stage = plantStage(growthRank().p);
+    return '<div class="grow" role="img" aria-label="Росток: ' + stage + ', рост дерева ' + pc + '%">' +
+      '<div class="grow-t"><span class="grow-k">Твой росток</span><b>' + stage + '</b><span class="grow-s">' + pr.done + ' из ' + pr.all + ' дел · ' + pc + '% роста</span><i class="grow-bar"><u style="width:' + pc + '%"></u></i></div></div>';
   }
 
   // ----- Главная -----
@@ -517,7 +543,7 @@
     var dateText = d.getDate() + ' ' + MON[d.getMonth()] + ', ' + DOWF[sel % 7].toLowerCase();
     var h = '<section class="view home-view">' +
       '<header class="m-head only-m"><div class="brand">' + I.leaf + '<b>ROSTOK</b></div>' + headTools(false, true) + '</header>' +
-      '<div class="hero"><div class="hero-stage"><div class="hero-bg" aria-hidden="true"><div class="hero-scene">' + plantSvg(planProgress().p) + '</div></div>' +
+      '<div class="hero"><div class="hero-stage"><div class="hero-bg" aria-hidden="true"><div class="hero-scene">' + plantSvg(growthRank().p) + '</div></div>' +
       '<div class="hero-top only-d"><span class="hero-leaf">' + I.leaf + '</span>' + headTools(true, false) + '</div>' +
       '<div class="hero-main"><div class="hero-copy"><span class="hero-leaf only-m">' + I.leaf + '</span><h1 class="hero-title"><span class="only-d">ROSTOK</span><span class="only-m">Развивай себя каждый день</span></h1>' +
       '<p class="hero-tag only-d">Знания. Привычки. Развитие.</p><p class="hero-sub only-d">Маленькие шаги каждый день приводят к большим результатам.</p>' +
@@ -525,7 +551,7 @@
       '<blockquote class="hero-quote only-d">«' + quote(sel) + '»<span>' + I.leaf + '</span></blockquote></div>' +
       '<div class="hero-side">' + growCard() + '</div></div>' + growPill() + '</div>' +
       '<div class="dirs only-d">' + DIRS.map(function (x) { return '<button class="dir" ' + (x.id === 'art' ? 'data-learnfilter="art"' : 'data-course="' + x.courses[0] + '"') + ' style="--cc:var(--c-' + x.cat + ')"><span class="dir-ic">' + CI[x.cat] + '</span><b>' + x.name + '</b><span>' + x.desc + '</span><i>' + I.arrow + '</i></button>'; }).join('') + '</div></div>' +
-      '<p class="m-date only-m">' + dateText + '</p>' + '<div class="only-m">' + weekStrip() + '</div>';
+      rankCard() + '<p class="m-date only-m">' + dateText + '</p>' + '<div class="only-m">' + weekStrip() + '</div>';
     if (rt < 0) h += '<p class="muted">План начнётся ' + START.getDate() + ' ' + MON[START.getMonth()] + '.</p>';
     h += '<div class="today-panel"><div class="tp-head"><div><h2>' + (sel === rt ? 'Сегодня' : d.getDate() + ' ' + MON[d.getMonth()]) + '</h2><p class="muted"><span class="only-d">' + dateText + '</span><span class="only-m">' + s.done + ' из ' + s.n + ' выполнено</span>' + (sel !== clamp(rt) ? ' · <button class="back" data-act="gotoday">К сегодня</button>' : '') + '</p></div><button class="link" data-tab="plan">План на день ' + I.arrow + '</button></div>' +
       '<div class="tp-cols"><div class="tp-box tp-list">' + (s.tasks.length ? '<ul class="tasks">' + s.tasks.map(function (t) { return taskRow(t); }).join('') + '</ul>' : '<p class="muted">На этот день дел нет.</p>') + '</div>' +
