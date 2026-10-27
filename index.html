@@ -66,6 +66,22 @@ main.full{padding-bottom:calc(env(safe-area-inset-bottom,0px) + 24px)}
 .btn.block{width:100%}
 .btn[disabled]{opacity:.45;cursor:default}
 .btns{display:flex;flex-wrap:wrap;gap:8px}
+/* Улучшения интерфейса v3.4 */
+:root{--focus-ring:rgba(217,83,30,.14)}
+@media (prefers-color-scheme:dark){:root{--focus-ring:rgba(255,138,76,.13)}}
+.card,.ccard,.hero{border-radius:16px}
+.btn,.nav,.tab,.ccard,.step,.chk{touch-action:manipulation}
+.btn,.nav,.tab,.chk,.sq{min-height:44px}
+.chk{width:44px;height:44px;margin-top:0}
+.task{align-items:center;gap:10px;padding:14px 0}
+.go{min-height:38px;padding:8px 0;text-align:left}
+.daily-focus{display:flex;align-items:center;gap:12px;justify-content:space-between;padding:16px;border:1px solid var(--accent);background:var(--card);border-radius:16px;box-shadow:0 0 0 3px var(--focus-ring)}
+.daily-focus-copy{display:flex;flex-direction:column;gap:4px;min-width:0;flex:1}
+.daily-focus-copy strong{font-size:17px;line-height:1.2}
+.daily-focus-copy>span:last-child{font-size:13px;color:var(--mute);line-height:1.35}
+.daily-focus .btn{flex:none;padding:12px;font-size:13px;max-width:138px}
+@media(max-width:355px){.daily-focus{align-items:stretch;flex-direction:column}.daily-focus .btn{max-width:none}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
 /* Сегодня */
 .brand{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--mute)}
 .brand b{font-family:var(--f-d);font-weight:600;font-size:17px;letter-spacing:.04em;text-transform:uppercase;color:var(--ink)}
@@ -230,9 +246,9 @@ input[type=file]{position:absolute;width:1px;height:1px;opacity:0}
 </div></nav>
 <div class="toast" id="toast" hidden></div>
 <div class="modal" id="modal" hidden></div>
-<script src="plan.js?v=3.3"></script>
-<script src="courses.js?v=3.3"></script>
-<script src="app.js?v=3.3"></script>
+<script src="plan.js?v=3.4"></script>
+<script src="courses.js?v=3.4"></script>
+<script src="app.js?v=3.4"></script>
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function(){ navigator.serviceWorker.register('sw.js').catch(function(){}); });
