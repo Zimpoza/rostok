@@ -741,6 +741,15 @@ main#app.full{padding-bottom:calc(env(safe-area-inset-bottom,0px) + 32px)}
   .home-view .hero-quote{margin:20px 0 0!important;max-width:360px!important;padding:16px 18px 10px!important;font-size:15.5px!important}
 }
 @media(prefers-reduced-motion:reduce){.plant-sway{animation:none}}
+/* 4.6: individual leaf motion and earned growth ranks. */
+.plant-leaf{transform-origin:0 0;animation:leafbreeze 3.8s ease-in-out infinite alternate}
+@keyframes leafbreeze{from{transform:rotate(-6deg)}to{transform:rotate(8deg)}}
+.rank-card{display:flex;flex-wrap:wrap;align-items:center;gap:16px 24px;border:1px solid var(--line);border-radius:16px;padding:20px 24px;background:var(--card);color:var(--ink)}
+.rank-main{display:flex;align-items:center;gap:14px;min-width:0;flex:1}
+.rank-symbol{display:grid;place-items:center;flex:none;width:44px;height:44px;border-radius:50%;background:var(--soft);color:var(--done)}
+.rank-symbol svg{width:26px;height:26px}.rank-label{font-size:10px;color:var(--mute);letter-spacing:.09em;text-transform:uppercase}.rank-main h2{font-size:23px;line-height:1.25;margin:3px 0 5px;letter-spacing:-.03em}.rank-main p{font-size:12px;color:var(--mute);margin:0}.rank-meter{flex:1;min-width:230px;max-width:420px}.rank-meter-label{display:flex;flex-wrap:wrap;justify-content:space-between;gap:7px;font-size:11px;margin-bottom:9px}.rank-next{color:var(--mute)}.rank-track{height:6px;background:var(--soft);border-radius:5px;overflow:hidden}.rank-track i{height:100%;display:block;background:var(--done);border-radius:inherit}.rank-details{flex-basis:100%;border-top:1px solid var(--line);font-size:12px}.rank-details summary{min-height:44px;padding:12px 0 0;color:var(--mute);cursor:pointer}.rank-details summary::after{content:' +';color:var(--done)}.rank-details[open] summary::after{content:' −'}.rank-details>div{max-width:650px}.rank-details p{color:var(--mute);line-height:1.7}.rank-ladder{list-style:none;margin:14px 0;padding:0;display:grid;grid-template-columns:1fr 1fr;gap:7px}.rank-ladder li{display:flex;justify-content:space-between;gap:10px;padding:10px 12px;background:var(--soft);border-radius:9px}.rank-ladder li[aria-current]{outline:1px solid var(--done);font-weight:600}.rank-ladder b{white-space:nowrap;font-size:10px;color:var(--mute)}
+@media(max-width:767px){.rank-card{margin:0;padding:16px;gap:14px;border-radius:13px}.rank-main{flex-basis:100%;gap:10px}.rank-symbol{width:36px;height:36px}.rank-main h2{font-size:20px}.rank-main p{font-size:11px}.rank-label{font-size:8px}.rank-meter{min-width:0;max-width:none;flex-basis:100%}.rank-meter-label{font-size:10px}.rank-ladder{grid-template-columns:1fr}.rank-details summary{font-size:11px}.grow-t b{overflow-wrap:anywhere}}
+@media(prefers-reduced-motion:reduce){.plant-leaf,.plant-sway{animation:none!important}}
 </style>
 </head>
 <body>
@@ -748,9 +757,9 @@ main#app.full{padding-bottom:calc(env(safe-area-inset-bottom,0px) + 32px)}
 <nav class="tabbar" id="tabbar" aria-label="Разделы"></nav>
 <div class="toast" id="toast" hidden></div>
 <div class="modal" id="modal" hidden></div>
-<script src="plan.js?v=4.5"></script>
-<script src="courses.js?v=4.5"></script>
-<script src="app.js?v=4.5"></script>
+<script src="plan.js?v=4.6"></script>
+<script src="courses.js?v=4.6"></script>
+<script src="app.js?v=4.6"></script>
 <script>
 if ('serviceWorker' in navigator) {
   var hadController = !!navigator.serviceWorker.controller;
