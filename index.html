@@ -242,53 +242,294 @@ button,a,input,textarea{touch-action:manipulation}button{min-height:44px}.btn{mi
 
 .update-notice{position:fixed;z-index:9;left:16px;right:16px;top:16px;max-width:500px;margin:auto;background:var(--card);border:1px solid var(--line);box-shadow:0 8px 30px #0002;border-radius:16px;padding:16px;display:flex;align-items:center;gap:16px;font-size:13px}.update-notice .btn{margin-left:auto;flex-shrink:0}
 
-/* Росток 4.1 — тёмно-зелёная палитра по макету: лес, зелёный акцент, белые карточки. */
-:root{--bg:#EFF3F0;--card:#FFFFFF;--ink:#13241B;--mute:#66776D;--line:#DFE7E2;--soft:#E7EFEA;--box:#A5B4AB;--accent:#1B9E5A;--accent-ink:#fff;--done:#1B9E5A;--full:#157A46;--part:#DCF2E5;--part-ink:#15553A;--hero:#0F2D1F;--hero-ink:#F3FAF5;--focus-ring:rgba(27,158,90,.2);--leaf:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%2342D17F' d='M20 3C10 3 4 8 4 15c0 1.6.4 3 1 4 .9-4.3 3.6-7.6 8-9.5-3.2 2.6-5 5.4-5.9 9.1C8.4 19.8 9.7 20 11 20c7 0 9-7 9-17z'/%3E%3C/svg%3E")}
-.brand .brand-mark{font-size:0;padding:0;background:#0F2D1F var(--leaf) center/20px no-repeat}
-.hero,.study-focus,.week-panel{background:radial-gradient(120% 150% at 88% 0%,#21683F 0%,#0F2D1F 52%,#0A2016 100%)}
-.study-focus::after,.week-panel::after{content:'';position:absolute;right:-18px;bottom:-34px;width:230px;height:230px;background:var(--leaf) center/contain no-repeat;opacity:.13;pointer-events:none;transform:rotate(-8deg)}
-.week-panel{position:relative;overflow:hidden}
-.study-focus .btn,.week-switch button[aria-pressed=true]{background:#4ADE80;border-color:#4ADE80;color:#06210F}
-.study-focus .btn{font-weight:600;box-shadow:0 6px 18px rgba(74,222,128,.25)}
-.study-focus>*{position:relative;z-index:1}
-.hero .btn.primary{background:#4ADE80;border-color:#4ADE80;color:#06210F}
-.eyebrow{color:var(--accent)}
-.card,.ccard,.day-plan,.mode-card,.backup-hint{box-shadow:0 1px 2px rgba(15,45,31,.05),0 8px 24px rgba(15,45,31,.04)}
-.go,.back,.save-indicator+*{color:var(--accent)}
-.task .chk{border-color:var(--box);background:var(--card)}
-.day-progress{background:#E1F1E8}
-.progress-value{color:var(--full)}
-.stage.active{border-color:var(--accent);color:var(--accent)}
-.tab[aria-current=page]{background:var(--part);color:var(--full)}
-.tabbar{border-color:var(--line)}
-@media(min-width:1100px){
-.tabbar{left:0;top:0;bottom:0;width:240px;max-width:none;margin:0;border:0;border-radius:0;background:#0B1F16;box-shadow:none}
-.tabbar::before{content:'ROSTOK';padding:30px 26px 38px;font-size:22px;font-weight:700;letter-spacing:.04em;color:#fff;background:var(--leaf) 26px 31px/22px no-repeat;padding-left:56px}
-.tabbar::after{color:#7C9486}
-.tabbar .in{padding:0 14px}
-.tab{color:#A5B9AD;height:50px;font-size:13px}
-.tab:hover{background:#12301F;color:#fff}
-.tab[aria-current=page]{background:#143B28;color:#4ADE80}
-main:not(.full){margin-left:240px;max-width:1240px}
-.page-head .brand{display:none}
-.page-head{justify-content:flex-end}
+/* Росток 4.2 — оформление по макету: тёмное боковое меню, лес в шапке, зелёный акцент, карточки направлений, графики. */
+:root,:root[data-theme=light]{--bg:#F3F6F4;--card:#FFFFFF;--ink:#10201A;--mute:#63746B;--line:#E2E9E4;--soft:#EAF1EC;--box:#A9B8AF;--accent:#16A34A;--accent-ink:#FFFFFF;--done:#16A34A;--full:#15803D;--part:#DCFCE7;--part-ink:#14532D;--hero:#0F2D1F;--hero-ink:#F3FAF5;--bad:#DC2626;--chart-soft:#E3ECE6;--chart-bar:#86D3A4;--focus-ring:rgba(22,163,74,.2);--side:#0B1A12;--side-ink:#A9BDB1;--green:#22C55E;--green-ink:#06210F;color-scheme:light}
+@media(prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#0A1410;--card:#121E17;--ink:#ECF3EE;--mute:#93A69B;--line:#1F3027;--soft:#182820;--box:#4E6A5A;--accent:#22C55E;--accent-ink:#06210F;--done:#22C55E;--full:#4ADE80;--part:#1B4A31;--part-ink:#D7F5E2;--hero:#0F2D1F;--hero-ink:#F3FAF5;--bad:#F87171;--chart-soft:#1E3127;--chart-bar:#2F9E5F;--focus-ring:rgba(34,197,94,.2);color-scheme:dark}}
+:root[data-theme=dark]{--bg:#0A1410;--card:#121E17;--ink:#ECF3EE;--mute:#93A69B;--line:#1F3027;--soft:#182820;--box:#4E6A5A;--accent:#22C55E;--accent-ink:#06210F;--done:#22C55E;--full:#4ADE80;--part:#1B4A31;--part-ink:#D7F5E2;--hero:#0F2D1F;--hero-ink:#F3FAF5;--bad:#F87171;--chart-soft:#1E3127;--chart-bar:#2F9E5F;--focus-ring:rgba(34,197,94,.2);color-scheme:dark}
+body{background:var(--bg);color:var(--ink)}
+.h1{font-size:28px;font-weight:600;letter-spacing:-.02em;line-height:1.15;text-transform:none}
+.h2,h2{font-size:20px;letter-spacing:-.02em}
+.card,.ccard,.day-plan,.mode-card,.backup-hint,.tile,.dcard{box-shadow:none;border:1px solid var(--line);background:var(--card);border-radius:18px}
+.card{padding:20px}
+.btn{border-radius:12px;min-height:46px}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:600;box-shadow:none}
+.btn.block{width:100%;justify-content:center}
+.eyebrow{color:var(--mute)}
+.icon-btn{width:40px;height:40px;min-height:40px;border-radius:50%;border:1px solid var(--line);background:var(--card);display:grid;place-items:center;padding:0;flex:none}
+.icon-btn svg{width:20px;height:20px}
+.link{border:0;background:none;color:var(--accent);font-weight:600;font-size:14px;display:inline-flex;align-items:center;gap:4px;padding:6px 0;white-space:nowrap}
+.link svg{width:16px;height:16px}
+.chart-svg{width:100%;height:auto;display:block}
+.go,.back{color:var(--accent)}
+.pill{background:var(--soft);color:var(--mute);font-size:11px;padding:4px 9px;border-radius:999px;font-weight:500}
+
+/* Верхняя строка: бренд (телефон), заголовок, поиск */
+.topbar{position:relative;display:flex;flex-wrap:wrap;align-items:center;gap:12px 14px;min-height:44px}
+.topbar-title{flex-basis:100%;order:3}
+.topbar .brand{display:flex;align-items:center;gap:9px;font-size:19px;font-weight:700;letter-spacing:.02em;color:var(--ink)}
+.topbar .brand-mark{display:grid;place-items:center;width:34px;height:34px;border-radius:11px;background:var(--hero);color:var(--green);font-size:0;padding:0}
+.topbar .brand-mark svg{width:20px;height:20px}
+.topbar-title{min-width:0;display:flex;flex-direction:column;gap:4px}
+.topbar-spacer{flex:1}
+.search{position:relative;display:flex;align-items:center;flex:none}
+.search input{display:none;border-radius:999px;padding:10px 44px 10px 16px;background:var(--card);border:1px solid var(--line);min-height:42px;width:280px;font-size:14px}
+.search .icon-btn{position:relative}
+.search-results{position:absolute;top:calc(100% + 6px);right:0;width:min(440px,calc(100vw - 32px));background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:0 14px 34px rgba(0,0,0,.18);padding:6px;z-index:30;max-height:360px;overflow:auto}
+.search-item{display:flex;align-items:center;gap:10px;width:100%;text-align:left;border:0;background:none;padding:10px;border-radius:10px;font-size:14px;color:var(--ink);min-height:44px}
+.search-item small{display:block;font-size:11px;color:var(--mute)}
+.search-item em{margin-left:auto;font-style:normal;font-size:11px;color:var(--accent);white-space:nowrap}
+.search-item:hover{background:var(--soft)}
+
+/* Шапка с лесом */
+.hero{position:relative;border-radius:22px;overflow:hidden;color:#fff;padding:24px 20px;background:var(--hero);display:flex;flex-direction:column;gap:18px;min-height:220px}
+.hero-art{position:absolute;inset:0;width:100%;height:100%}
+.hero-copy{position:relative;z-index:1;max-width:560px;display:flex;flex-direction:column;gap:10px}
+.hero-leaf{display:inline-grid;place-items:center;width:34px;height:34px;color:var(--green)}
+.hero-leaf svg{width:26px;height:26px}
+.hero-title{margin:0;font-size:30px;line-height:1.1;letter-spacing:-.03em;font-weight:700;color:#fff;text-wrap:balance;font-family:var(--f-d)}
+.hero-tag{margin:0;font-size:19px;font-weight:600;color:#fff}
+.hero-sub,.hero-date{margin:0;font-size:14px;color:rgba(255,255,255,.82)}
+.hero .btn.primary{align-self:flex-start;background:var(--green);border-color:var(--green);color:var(--green-ink);box-shadow:0 6px 20px rgba(34,197,94,.35);margin-top:6px}
+.hero .btn svg{width:18px;height:18px}
+.hero-quote{position:relative;z-index:1;margin:0;max-width:290px;background:rgba(8,26,17,.55);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.14);border-radius:16px;padding:16px 18px;font-size:16px;line-height:1.45;color:#fff}
+.hero-quote span{display:block;margin-top:8px;color:var(--green)}
+.hero-quote svg{width:18px;height:18px}
+.week-strip{position:relative;z-index:1;display:flex;align-items:center;gap:6px;margin-top:auto}
+.week-strip .nav{width:30px;height:38px;min-height:38px;border:0;background:transparent;color:rgba(255,255,255,.75);display:grid;place-items:center;padding:0;flex:none;border-radius:10px}
+.week-strip .nav svg{width:16px;height:16px}
+.week-strip .nav[disabled]{opacity:.3}
+.week-strip .days{flex:1;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px}
+.wday{display:flex;flex-direction:column;align-items:center;gap:2px;padding:7px 0 6px;border-radius:12px;border:1px solid rgba(255,255,255,.14);background:rgba(8,26,17,.45);color:rgba(255,255,255,.85);min-height:52px}
+.wday span{font-size:10px;letter-spacing:.04em;text-transform:uppercase;opacity:.8}
+.wday b{font-size:15px;font-weight:600}
+.wday.part b::after,.wday.full b::after{content:'';display:block;width:5px;height:5px;border-radius:50%;background:var(--green);margin:3px auto 0}
+.wday.today{border-color:var(--green)}
+.wday.sel{background:var(--green);border-color:var(--green);color:var(--green-ink)}
+.wday.sel span{opacity:1}
+.wday.sel.part b::after,.wday.sel.full b::after{background:var(--green-ink)}
+
+/* Карточки направлений на главной (компьютер) */
+.dcards{display:grid;grid-template-columns:repeat(auto-fill,minmax(176px,1fr));gap:12px}
+.dcard{display:flex;flex-direction:column;align-items:flex-start;gap:8px;text-align:left;padding:16px;position:relative;min-height:138px;color:var(--ink)}
+.dcard:hover{border-color:var(--cc)}
+.dcard-ic{display:grid;place-items:center;width:38px;height:38px;border-radius:11px;background:var(--cc);color:#fff}
+.dcard-ic svg{width:21px;height:21px}
+.dcard b{font-size:15px;line-height:1.3}
+.dcard .small{line-height:1.4}
+.dcard-arrow{position:absolute;right:14px;bottom:14px;color:var(--mute)}
+.dcard-arrow svg{width:16px;height:16px}
+
+/* Панель «Сегодня» */
+.today-panel{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:20px}
+.today-panel>.section-head{margin-bottom:10px}
+.today-panel .section-head h2{margin:0 0 4px}
+.today-cols{display:grid;grid-template-columns:1fr;gap:18px}
+.today-list .eyebrow{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}
+.today-chart,.today-overall{border:1px solid var(--line);border-radius:16px;padding:16px;background:var(--bg)}
+.today-chart h3,.today-overall h3{margin:0 0 10px;font-size:15px}
+.overall-row{display:flex;align-items:center;gap:18px}
+.legend-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px;font-size:13px;flex:1;min-width:0}
+.legend-list li{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:8px}
+.legend-list li span{flex:1;min-width:0;line-height:1.3}
+.legend-list b{font-weight:600}
+.delta{background:var(--part);color:var(--part-ink);font-size:12px;font-weight:600;padding:3px 8px;border-radius:999px}
+.delta.down{background:#FDE2E2;color:#B42318}
+.donut{flex:none}
+
+/* Список дел */
+.tasks{list-style:none;margin:0;padding:0}
+.task{display:flex;align-items:flex-start;gap:12px;padding:14px 0;border-bottom:1px solid var(--line)}
+.task:last-child{border-bottom:0}
+.task .chk{width:26px;height:26px;min-height:26px;border-radius:50%;border:2px solid var(--box);background:transparent;display:grid;place-items:center;padding:0;flex:none;margin-top:1px}
+.task .chk svg{width:14px;height:14px;opacity:0}
+.task.done .chk{background:var(--accent);border-color:var(--accent)}
+.task.done .chk svg{opacity:1}
+.task .tb{flex:1;min-width:0}
+.tt{font-size:15px;line-height:1.4;display:flex;align-items:center;gap:7px;font-weight:500}
+.task.done .tt{color:var(--mute);text-decoration:line-through}
+.tn{font-size:12.5px;color:var(--mute);margin-top:3px;line-height:1.45}
+.min{margin-left:auto;font-size:13px;color:var(--mute);white-space:nowrap;display:flex;align-items:baseline;gap:3px;font-weight:500;font-family:var(--f-b);padding-top:3px}
+.min small{font-size:11px;font-weight:400;margin:0}
+.tl-min{width:52px;flex:none;font-size:12px;color:var(--mute);padding-top:5px;font-variant-numeric:tabular-nums}
+.del-task{width:32px;height:32px;min-height:32px;border:0;background:transparent;color:var(--mute)}
+.del-task svg{width:16px;height:16px}
+.remaining-tasks{border-top:1px solid var(--line)}
+.remaining-tasks summary{padding:12px 0;font-size:13px;font-weight:500;display:flex;align-items:center;gap:10px}
+.empty-state{padding:24px 10px}
+
+/* Обучение */
+.chips{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{border:1px solid var(--line);background:var(--card);border-radius:999px;padding:8px 14px;font-size:13px;white-space:nowrap;min-height:38px;color:var(--ink);font-weight:500}
+.chip[aria-pressed=true]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.course-grid{display:grid;grid-template-columns:1fr;gap:14px}
+.ccard{display:flex;flex-direction:row;text-align:left;padding:0;overflow:hidden;min-height:0;gap:0;color:var(--ink)}
+.ccard:hover{border-color:var(--cc)}
+.ccard-art{width:112px;flex:none;background:linear-gradient(160deg,rgba(255,255,255,.22),rgba(0,0,0,.4)),var(--cc);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:14px;color:#fff}
+.ccard-ic svg{width:40px;height:40px;opacity:.95}
+.ccard-pct{background:rgba(0,0,0,.35);padding:3px 9px;border-radius:999px;font-weight:600;font-size:12px}
+.ccard-body{flex:1;min-width:0;padding:14px 16px;display:flex;flex-direction:column;gap:7px}
+.ccard-body .nm{font-size:16px;letter-spacing:-.01em;line-height:1.3}
+.ccard-body .small{line-height:1.4}
+.ccard-body .bar{height:6px}
+.ccard-foot{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:auto}
+.go-link{color:var(--accent);font-weight:600;font-size:13px;white-space:nowrap}
+
+/* План дня */
+.daynav-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px}
+.daynav-row .nav{width:40px;height:40px;min-height:40px;border:1px solid var(--line);border-radius:50%;background:var(--bg);display:grid;place-items:center;padding:0;flex:none}
+.daynav-row .nav svg{width:18px;height:18px}
+.daynav-row .nav[disabled]{opacity:.35}
+.daynav-title{display:flex;flex-direction:column;align-items:center;text-align:center;gap:2px;min-width:0}
+.daynav-title b{font-size:17px}
+.plan-grid{display:grid;grid-template-columns:1fr;gap:16px}
+.plan-side{display:flex;flex-direction:column;gap:14px}
+.add-task{display:grid;grid-template-columns:1fr 72px;gap:8px;margin-top:14px;padding-top:14px;border-top:1px solid var(--line)}
+.add-task .btn{grid-column:1/-1}
+.add-task input{min-height:44px}
+.day-progress{background:var(--soft);border:0}
+.quote-card{background:var(--hero);color:var(--hero-ink);display:flex;gap:12px;align-items:flex-start;font-size:15px;line-height:1.5;border:0}
+.quote-card span{display:grid;place-items:center;flex:none;color:var(--green)}
+.quote-card svg{width:22px;height:22px}
+
+/* Статистика */
+.stat-tiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.tile{padding:16px;display:flex;flex-direction:column;gap:4px;min-height:0;text-align:left}
+.tile b{font-size:28px;font-weight:600;letter-spacing:-.03em;line-height:1.1;white-space:normal}
+.tile span{font-size:12px;color:var(--mute)}
+.stat-grid{display:grid;grid-template-columns:1fr;gap:14px}
+.dist-row{grid-template-columns:minmax(0,1.1fr) minmax(0,1fr) 44px}
+.dist-row .row{white-space:normal;line-height:1.25;font-size:13px}
+.theme-switch{display:flex;gap:4px;background:var(--soft);border-radius:10px;padding:3px}
+.theme-switch button{flex:1;border:0;background:transparent;color:var(--ink);font-size:12px;padding:6px 4px;border-radius:8px;min-height:34px;font-weight:500}
+.theme-switch button[aria-pressed=true]{background:var(--accent);color:var(--accent-ink)}
+.growth-view .week-panel{background:radial-gradient(120% 150% at 88% 0%,#21683F 0%,#0F2D1F 52%,#0A2016 100%)}
+.week-switch button[aria-pressed=true]{background:var(--green);border-color:var(--green);color:var(--green-ink)}
+
+/* Урок */
+.lesson-grid{display:grid;grid-template-columns:1fr;gap:16px;align-items:start}
+.lesson-main{display:flex;flex-direction:column;gap:16px;min-width:0}
+.lesson-side{position:sticky;top:24px;display:flex;flex-direction:column;gap:8px}
+.lesson-steps{list-style:none;padding:0;margin:8px 0 4px;display:flex;flex-direction:column;gap:2px}
+.lesson-steps li{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:10px;font-size:14px;color:var(--mute)}
+.lesson-steps li i{width:10px;height:10px;border-radius:50%;border:2px solid var(--box);flex:none}
+.lesson-steps li.done{color:var(--ink)}
+.lesson-steps li.done i{background:var(--accent);border-color:var(--accent)}
+.lesson-steps li.wrong{color:var(--ink)}
+.lesson-steps li.wrong i{background:var(--bad);border-color:var(--bad)}
+.lesson-steps li.active{background:var(--soft);color:var(--ink);font-weight:600}
+.lesson-steps li.skip{opacity:.45}
+.exm.code{display:flex;flex-direction:column;gap:6px;align-items:flex-start}
+.exm.code code{display:block;width:100%;background:#0B1A12;color:#CDEBD6;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:13px;padding:12px 14px;border-radius:10px;white-space:pre-wrap;overflow-wrap:anywhere}
+
+/* Нижнее меню (телефон) */
+nav#tabbar{position:fixed;left:12px;right:12px;bottom:calc(10px + env(safe-area-inset-bottom,0px));top:auto;width:auto;max-width:560px;margin:auto;border:1px solid var(--line);border-radius:20px;background:var(--card);box-shadow:0 8px 28px rgba(10,30,20,.14);padding:0;overflow:hidden;z-index:6}
+nav#tabbar::before,nav#tabbar::after{content:none}
+nav#tabbar .side-brand,nav#tabbar .side-foot{display:none}
+nav#tabbar .in{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0;padding:0;max-width:none}
+nav#tabbar .tab{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;height:62px;font-size:10.5px;color:var(--mute);border:0;background:transparent;border-radius:0;padding:0;text-align:center}
+nav#tabbar .tab svg{width:22px;height:22px}
+nav#tabbar .tab i{font-style:normal}
+nav#tabbar .tab .tl-long{display:none}
+nav#tabbar .tab[aria-current=page]{background:var(--part);color:var(--full)}
+body.app-full nav#tabbar{display:none}
+main#app{max-width:600px;margin:0 auto;padding:calc(env(safe-area-inset-top,0px) + 16px) 16px calc(env(safe-area-inset-bottom,0px) + 104px)}
+main#app.full{max-width:600px;padding-bottom:calc(env(safe-area-inset-bottom,0px) + 40px)}
+.view{gap:16px}
+.update-notice{top:calc(12px + env(safe-area-inset-top,0px))}
+
+/* Телефон: поиск по иконке */
+@media(max-width:1023px){
+  .only-d{display:none!important}
+  .search.open{position:absolute;left:0;right:0;top:0;bottom:0;z-index:21;background:var(--bg);display:flex;gap:8px}
+  .search.open input{display:block;flex:1;width:auto;padding-right:16px}
+  .search.open .search-results{right:0;left:0;width:auto}
 }
-@media(prefers-color-scheme:dark){:root{--bg:#0A1711;--card:#12261B;--ink:#EAF4EE;--mute:#93A89B;--line:#24382C;--soft:#1A3024;--box:#4E6A5A;--accent:#4ADE80;--accent-ink:#06210F;--done:#4ADE80;--full:#4ADE80;--part:#1B4A31;--part-ink:#D7F5E2;--hero:#0F2D1F;--hero-ink:#F3FAF5;--focus-ring:rgba(74,222,128,.15)}
-.day-progress{background:var(--soft)}.card,.ccard,.day-plan,.mode-card,.backup-hint{box-shadow:none}.tab[aria-current=page]{background:#1B4A31;color:#4ADE80}}
+
+/* Компьютер: боковое меню слева, широкие сетки */
+@media(min-width:1024px){
+  .only-m{display:none!important}
+  .h1{font-size:32px}
+  nav#tabbar{left:0;top:0;bottom:0;right:auto;width:236px;max-width:none;margin:0;border:0;border-radius:0;background:var(--side);color:var(--side-ink);box-shadow:none;display:flex;flex-direction:column;padding:22px 14px}
+  body.app-full nav#tabbar{display:flex}
+  nav#tabbar .side-brand{display:flex;align-items:center;gap:10px;padding:4px 10px 24px;color:#fff;font-size:20px;font-weight:700;letter-spacing:.03em}
+  nav#tabbar .side-brand svg{width:26px;height:26px;color:var(--green)}
+  nav#tabbar .in{display:flex;flex-direction:column;gap:4px}
+  nav#tabbar .tab{flex-direction:row;justify-content:flex-start;gap:12px;height:46px;padding:0 12px;border-radius:12px;color:var(--side-ink);font-size:14px;font-weight:500;text-align:left}
+  nav#tabbar .tab svg{width:20px;height:20px}
+  nav#tabbar .tab .tl-long{display:inline}
+  nav#tabbar .tab .tl-short{display:none}
+  nav#tabbar .tab:hover{background:rgba(255,255,255,.06);color:#fff}
+  nav#tabbar .tab[aria-current=page]{background:#163A27;color:#fff}
+  nav#tabbar .side-foot{margin-top:auto;display:flex;flex-direction:column;gap:8px;padding:10px}
+  nav#tabbar .side-foot .small{color:var(--side-ink)}
+  nav#tabbar .theme-switch{background:rgba(255,255,255,.06)}
+  nav#tabbar .theme-switch button{color:#DCE8E0}
+  nav#tabbar .theme-switch button[aria-pressed=true]{background:var(--green);color:var(--green-ink)}
+  nav#tabbar .side-motto{margin-top:10px;line-height:1.5}
+  main#app,main#app.full{max-width:none;margin:0 0 0 236px;padding:28px 36px 60px}
+  main#app>*{max-width:1180px;margin-left:auto;margin-right:auto}
+  main#app.full>*{max-width:1040px}
+  .view{gap:22px}
+  .topbar{flex-wrap:nowrap}
+  .topbar .brand{display:none}
+  .topbar-title{flex:1;flex-basis:auto;order:0}
+  .search input{display:block}
+  .search .icon-btn{position:absolute;right:3px;top:50%;transform:translateY(-50%);width:36px;height:36px;min-height:36px;border:0;background:transparent}
+  .hero{padding:40px 40px 32px;min-height:340px;flex-direction:row;flex-wrap:wrap;align-items:flex-start;gap:24px}
+  .hero-copy{flex:1;min-width:300px}
+  .hero-leaf{width:38px;height:38px}
+  .hero-title{font-size:52px;letter-spacing:-.035em}
+  .hero-sub{font-size:15px;max-width:420px}
+  .hero-quote{font-size:17px;padding:20px 22px;max-width:300px;align-self:flex-start;margin-top:36px}
+  .week-strip{flex-basis:100%;max-width:640px}
+  .today-cols{grid-template-columns:minmax(0,1.35fr) minmax(0,.95fr) minmax(0,1.1fr);gap:20px;align-items:start}
+  .today-panel{padding:26px 28px}
+  .course-grid{grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:18px}
+  .ccard{flex-direction:column}
+  .ccard-art{width:auto;height:126px;flex-direction:row;justify-content:space-between;align-items:center;padding:16px 18px}
+  .ccard-ic svg{width:48px;height:48px}
+  .ccard-body{padding:16px 18px 18px}
+  .plan-grid{grid-template-columns:minmax(0,1.6fr) minmax(280px,1fr);gap:20px;align-items:start}
+  .add-task{grid-template-columns:1fr 90px auto}
+  .add-task .btn{grid-column:auto}
+  .stat-tiles{grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+  .tile b{font-size:32px}
+  .stat-grid{grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:18px;align-items:start}
+  .dist-row{grid-template-columns:170px minmax(0,1fr) 52px}
+  .lesson-grid{grid-template-columns:250px minmax(0,1fr);gap:26px}
+  .theme-card{display:none}
+}
+@media(min-width:1024px) and (max-width:1399px){
+  .today-cols{grid-template-columns:minmax(0,1.4fr) minmax(0,1fr)}
+  .today-list{grid-row:1/3}
+  .hero-quote{margin-top:0}
+}
+@media(prefers-color-scheme:dark){:root:not([data-theme=light]) .delta.down{background:#4A1F1F;color:#FCA5A5}}
+:root[data-theme=dark] .delta.down{background:#4A1F1F;color:#FCA5A5}
 </style>
 </head>
 <body>
 <main id="app" aria-live="polite"></main>
-<nav class="tabbar" id="tabbar" aria-label="Разделы"><div class="in">
-  <button class="tab" data-tab="today"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15" rx="3"/><path d="M8 3v4M16 3v4M3.5 10h17M9 15l2 2 4-4"/></svg>Сегодня</button>
-  <button class="tab" data-tab="learn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6.5C5.5 5 8.5 5 12 7c3.5-2 6.5-2 9-.5V19c-2.5-1.5-5.5-1.5-9 .5-3.5-2-6.5-2-9-.5z"/><path d="M12 7v12.5"/></svg>Обучение</button>
-  <button class="tab" data-tab="growth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/></svg>Мой рост</button>
-</div></nav>
+<nav class="tabbar" id="tabbar" aria-label="Разделы">
+<div class="side-brand" aria-hidden="true"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M20 3C10 3 4 8 4 15c0 1.6.4 3 1 4 .9-4.3 3.6-7.6 8-9.5-3.2 2.6-5 5.4-5.9 9.1C8.4 19.8 9.7 20 11 20c7 0 9-7 9-17z"/></svg><b>ROSTOK</b></div>
+<div class="in">
+  <button class="tab" data-tab="today"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg><span>Главная</span></button>
+  <button class="tab" data-tab="learn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6.5C5.5 5 8.5 5 12 7c3.5-2 6.5-2 9-.5V19c-2.5-1.5-5.5-1.5-9 .5-3.5-2-6.5-2-9-.5z"/><path d="M12 7v12.5"/></svg><span>Обучение</span></button>
+  <button class="tab" data-tab="plan"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15" rx="3"/><path d="M8 3v4M16 3v4M3.5 10h17M9 15l2 2 4-4"/></svg><span><i class="tl-long">План дня</i><i class="tl-short">План</i></span></button>
+  <button class="tab" data-tab="growth"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/></svg><span>Статистика</span></button>
+</div>
+<div class="side-foot">
+  <span class="small">Тема</span>
+  <div class="theme-switch" role="group" aria-label="Тема оформления"><button data-theme="">Авто</button><button data-theme="light">Светлая</button><button data-theme="dark">Тёмная</button></div>
+  <span class="small side-motto">Шаг за шагом. Каждый день.</span>
+</div>
+</nav>
 <div class="toast" id="toast" hidden></div>
 <div class="modal" id="modal" hidden></div>
-<script src="plan.js?v=4.1"></script>
-<script src="courses.js?v=4.1"></script>
-<script src="app.js?v=4.1"></script>
+<script src="plan.js?v=4.2"></script>
+<script src="courses.js?v=4.2"></script>
+<script src="app.js?v=4.2"></script>
 <script>
 if ('serviceWorker' in navigator) {
   var hadController = !!navigator.serviceWorker.controller;
