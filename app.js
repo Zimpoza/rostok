@@ -1,6 +1,6 @@
 (function () {
   'use strict';
-  var APP_VERSION = '4.4';
+  var APP_VERSION = '4.5';
   var P = window.PLAN, COURSES = window.COURSES;
   var DOW = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
   var DOWF = ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота', 'Воскресенье'];
@@ -445,18 +445,85 @@
   }
   function resumeLabel() { var x = resumeTarget(); return x ? (x.c.steps[x.i].exam ? 'Пройти экзамен' : 'Продолжить обучение') : 'К направлениям'; }
 
+
+  // ----- Росток растёт вместе с выполненными делами плана -----
+  function planProgress() {
+    var done = 0, all = 0;
+    for (var i = 0; i < N; i++) { var s = stat(i); done += s.done; all += s.n; }
+    return { done: done, all: all, p: all ? done / all : 0 };
+  }
+  var PLANT_STAGES = [[0.03, 'Семечко в земле'], [0.15, 'Первый росток'], [0.35, 'Молодой побег'], [0.6, 'Саженец'], [0.85, 'Крепкое деревце'], [1, 'Почти пышное дерево'], [2, 'Пышное дерево']];
+  function plantStage(p) { for (var i = 0; i < PLANT_STAGES.length; i++) if (p < PLANT_STAGES[i][0]) return PLANT_STAGES[i][1]; return PLANT_STAGES[PLANT_STAGES.length - 1][1]; }
+  function plantSvg(p) {
+    p = Math.max(0, Math.min(1, p));
+    var g = p >= 1 ? 1 : Math.pow(p, 0.7), out = '', GY = 138;
+    function sc(a, b) { return Math.max(0, Math.min(1, (g - a) / (b - a))); }
+    function leaf(x, y, ang, k, col) { return k <= 0.02 ? '' : '<path transform="translate(' + x.toFixed(1) + ' ' + y.toFixed(1) + ') rotate(' + ang + ') scale(' + k.toFixed(2) + ')" d="M0 0C5-7 15-7 20 0C15 7 5 7 0 0Z" fill="' + col + '"/>'; }
+    var th = 3 + g * 82, tw = 2 + g * 6.5, topY = GY - th, lean = g * 2;
+    out += '<ellipse cx="60" cy="' + (GY + 4) + '" rx="' + (22 + g * 14) + '" ry="6" fill="#2b1d12" opacity=".55"/><path d="M30 ' + (GY + 6) + 'Q60 ' + (GY - 8) + ' 90 ' + (GY + 6) + 'Z" fill="#4a3220"/>';
+    if (p <= 0) return '<svg class="plant" viewBox="0 0 120 150" aria-hidden="true">' + out + '<ellipse cx="60" cy="' + (GY - 3) + '" rx="4" ry="2.6" fill="#a9792f"/></svg>';
+    // ствол
+    out += '<g class="plant-sway"><path d="M' + (60 - tw * 0.65) + ' ' + GY + 'Q' + (60 - tw * 0.4 + lean) + ' ' + (GY - th * 0.5) + ' ' + (60 - tw * 0.3 + lean) + ' ' + topY + 'L' + (60 + tw * 0.3 + lean) + ' ' + topY + 'Q' + (60 + tw * 0.4 + lean) + ' ' + (GY - th * 0.5) + ' ' + (60 + tw * 0.65) + ' ' + GY + 'Z" fill="' + (g < 0.3 ? '#5da24a' : '#8a5a33') + '"/>';
+    // ветки
+    var br = [[0.42, -1, 0.3], [0.55, 1, 0.38], [0.7, -1, 0.5], [0.8, 1, 0.58]];
+    br.forEach(function (b) {
+      var k = sc(b[2], b[2] + 0.2); if (k <= 0) return;
+      var by = GY - th * b[0], bx = 60 + (b[0] * lean) * 0.6, len = (10 + g * 20) * k, ex = bx + b[1] * len, ey = by - len * 0.7;
+      out += '<path d="M' + bx + ' ' + by + 'Q' + (bx + b[1] * len * 0.5) + ' ' + (by - 2) + ' ' + ex + ' ' + ey + '" stroke="#8a5a33" stroke-width="' + (1.2 + k * 1.6) + '" fill="none" stroke-linecap="round"/>';
+      out += leaf(ex, ey, b[1] > 0 ? -35 : 215, 0.5 + k * 0.5, '#22c55e') + leaf(ex, ey, b[1] > 0 ? 10 : 170, 0.4 + k * 0.5, '#4ade80');
+    });
+    // листья парами вдоль ствола
+    [[0.3, 0.04], [0.45, 0.12], [0.6, 0.22], [0.75, 0.3]].forEach(function (l, i) {
+      var k = sc(l[1], l[1] + 0.18); if (k <= 0 || g > 0.62) return;
+      var y = GY - th * l[0], x = 60 + l[0] * lean, f = 1 - sc(0.5, 0.62);
+      out += leaf(x, y, -25 + (i % 2) * 8, (0.5 + k * 0.7) * f, '#4ade80') + leaf(x, y - 4, 205 - (i % 2) * 8, (0.5 + k * 0.7) * f, '#22c55e');
+    });
+    // верхушка: два семядольных листика, потом пучок
+    var tx = 60 + lean, kt = 0.5 + Math.min(1, g * 2.2) * 0.9;
+    out += leaf(tx, topY + 1, -40, kt, '#4ade80') + leaf(tx, topY + 1, 220, kt, '#22c55e') + leaf(tx, topY, -88, kt * 0.8, '#86efac');
+    // крона
+    var cr = sc(0.42, 1);
+    if (cr > 0) {
+      var cy = topY + 4, R = 10 + cr * 30;
+      [[0, 0, 1, '#16a34a'], [-0.75, 0.35, 0.8, '#15803d'], [0.75, 0.35, 0.8, '#15803d'], [-0.5, -0.45, 0.82, '#22c55e'], [0.5, -0.45, 0.82, '#22c55e'], [0, -0.7, 0.75, '#4ade80'], [-1.05, 0.0, 0.55, '#22c55e'], [1.05, 0.0, 0.55, '#22c55e']].forEach(function (c, i) {
+        var kk = sc(0.42 + i * 0.045, 0.62 + i * 0.045); if (kk <= 0) return;
+        out += '<circle cx="' + (tx + c[0] * R * 0.95).toFixed(1) + '" cy="' + (cy + c[1] * R * 0.7 - R * 0.25).toFixed(1) + '" r="' + (R * c[2] * kk).toFixed(1) + '" fill="' + c[3] + '"/>';
+      });
+      // блики
+      if (cr > 0.5) out += '<circle cx="' + (tx - R * 0.35).toFixed(1) + '" cy="' + (cy - R * 0.75).toFixed(1) + '" r="' + (R * 0.22).toFixed(1) + '" fill="#bbf7d0" opacity=".55"/><circle cx="' + (tx + R * 0.45).toFixed(1) + '" cy="' + (cy - R * 0.4).toFixed(1) + '" r="' + (R * 0.16).toFixed(1) + '" fill="#bbf7d0" opacity=".45"/>';
+    }
+    // цветы и плоды на самом верху пути
+    if (p >= 0.9) {
+      var R2 = 10 + cr * 30, fk = Math.min(1, (p - 0.9) / 0.1);
+      [[-0.7, 0.05], [0.55, -0.35], [0.1, 0.45], [-0.25, -0.55], [0.85, 0.25]].forEach(function (f) {
+        out += '<circle cx="' + (tx + f[0] * R2).toFixed(1) + '" cy="' + (topY + 4 + f[1] * R2 * 0.7 - R2 * 0.25).toFixed(1) + '" r="' + (2.4 * fk).toFixed(1) + '" fill="' + (p >= 1 ? '#fbbf24' : '#fde68a') + '"/>';
+      });
+    }
+    return '<svg class="plant" viewBox="0 0 120 150" aria-hidden="true">' + out + '</g></svg>';
+  }
+  function growPill() {
+    var pr = planProgress(), pc = Math.round(pr.p * 100);
+    return '<div class="grow-pill only-d"><b>' + plantStage(pr.p) + '</b><span>' + pr.done + ' из ' + pr.all + ' дел · ' + pc + '%</span></div>';
+  }
+  function growCard() {
+    var pr = planProgress(), pc = Math.round(pr.p * 100), stage = plantStage(pr.p);
+    return '<div class="grow" role="img" aria-label="Росток: ' + stage + ', выполнено ' + pc + '% дел плана">' +
+      '<div class="grow-t"><span class="grow-k">Твой росток</span><b>' + stage + '</b><span class="grow-s">' + pr.done + ' из ' + pr.all + ' дел · ' + pc + '%</span><i class="grow-bar"><u style="width:' + pc + '%"></u></i></div></div>';
+  }
+
   // ----- Главная -----
   function viewToday() {
     var d = dateOf(sel), s = stat(sel), wk = Math.floor(sel / 7), rt = rawToday(), ov = overall();
     var dateText = d.getDate() + ' ' + MON[d.getMonth()] + ', ' + DOWF[sel % 7].toLowerCase();
     var h = '<section class="view home-view">' +
       '<header class="m-head only-m"><div class="brand">' + I.leaf + '<b>ROSTOK</b></div>' + headTools(false, true) + '</header>' +
-      '<div class="hero"><div class="hero-bg" aria-hidden="true"></div>' +
+      '<div class="hero"><div class="hero-stage"><div class="hero-bg" aria-hidden="true"><div class="hero-scene">' + plantSvg(planProgress().p) + '</div></div>' +
       '<div class="hero-top only-d"><span class="hero-leaf">' + I.leaf + '</span>' + headTools(true, false) + '</div>' +
       '<div class="hero-main"><div class="hero-copy"><span class="hero-leaf only-m">' + I.leaf + '</span><h1 class="hero-title"><span class="only-d">ROSTOK</span><span class="only-m">Развивай себя каждый день</span></h1>' +
       '<p class="hero-tag only-d">Знания. Привычки. Развитие.</p><p class="hero-sub only-d">Маленькие шаги каждый день приводят к большим результатам.</p>' +
-      '<button class="btn hero-btn only-d" data-act="resume">' + resumeLabel() + ' ' + I.arrow + '</button></div>' +
+      '<button class="btn hero-btn only-d" data-act="resume">' + resumeLabel() + ' ' + I.arrow + '</button>' +
       '<blockquote class="hero-quote only-d">«' + quote(sel) + '»<span>' + I.leaf + '</span></blockquote></div>' +
+      '<div class="hero-side">' + growCard() + '</div></div>' + growPill() + '</div>' +
       '<div class="dirs only-d">' + DIRS.map(function (x) { return '<button class="dir" ' + (x.id === 'art' ? 'data-learnfilter="art"' : 'data-course="' + x.courses[0] + '"') + ' style="--cc:var(--c-' + x.cat + ')"><span class="dir-ic">' + CI[x.cat] + '</span><b>' + x.name + '</b><span>' + x.desc + '</span><i>' + I.arrow + '</i></button>'; }).join('') + '</div></div>' +
       '<p class="m-date only-m">' + dateText + '</p>' + '<div class="only-m">' + weekStrip() + '</div>';
     if (rt < 0) h += '<p class="muted">План начнётся ' + START.getDate() + ' ' + MON[START.getMonth()] + '.</p>';

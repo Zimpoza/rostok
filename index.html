@@ -704,6 +704,43 @@ main#app.full{padding-bottom:calc(env(safe-area-inset-bottom,0px) + 32px)}
   .hero-quote{max-width:280px;margin-top:20px}
 }
 @media(max-width:767px){:root:not([data-theme=light]) .ccard{border-color:transparent}.topbar .avatar{display:none}.learn-view .tb-title .muted{display:none}.stabs .chip{padding:0 14px}.stat-grid{display:flex;flex-direction:column;gap:16px}}
+
+/* Росток 4.5: растущее дерево */
+.hero-stage{display:contents}
+.hero-bg{background:none!important;container-type:size;overflow:hidden}
+.hero-scene{--px:.72;--py:.55;position:absolute;width:max(100cqw,calc(100cqh*2.1176));aspect-ratio:1800/850;left:calc((100cqw - max(100cqw,calc(100cqh*2.1176)))*var(--px));top:calc((100cqh - max(100cqh,calc(100cqw/2.1176)))*var(--py));background:url(img/hero.jpg) 0 0/100% 100% no-repeat}
+.hero-bg::after{z-index:1}
+.hero-scene .plant{position:absolute;left:77.1%;bottom:12.9%;width:min(24%,55cqh);height:auto;aspect-ratio:120/150;transform:translate(-50%,8%);overflow:visible;filter:drop-shadow(0 6px 14px rgba(0,0,0,.35))}
+.plant-sway{transform-origin:60px 138px;animation:plantsway 6s ease-in-out infinite}
+@keyframes plantsway{0%,100%{transform:rotate(-1deg)}50%{transform:rotate(1deg)}}
+.hero-side{display:flex;flex-direction:column;gap:12px;flex:none}
+.grow{display:flex;flex-direction:column;gap:2px;color:#fff;min-width:0}
+.grow-t{display:flex;flex-direction:column;gap:2px;min-width:0}
+.grow-k{font-size:11px;letter-spacing:.08em;text-transform:uppercase;opacity:.8}
+.grow-t b{font-size:15px;line-height:1.2;font-weight:700}
+.grow-s{font-size:12px;opacity:.85}
+.grow-bar{display:block;height:5px;border-radius:3px;background:rgba(255,255,255,.25);margin-top:5px;overflow:hidden}
+.grow-bar u{display:block;height:100%;background:#4ADE80;border-radius:3px;text-decoration:none}
+@media(max-width:767px){
+  .hero-scene{--px:.92}
+  .home-view .hero{min-height:340px}
+  .home-view .hero-main{position:static}
+  .hero-side{position:absolute;top:14px;right:14px;width:172px;z-index:2}
+  .grow{background:rgba(10,18,14,.5);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);border-radius:12px;padding:8px 10px}
+  .home-view .hero-copy .hero-leaf{display:none}
+}
+@media(min-width:768px){
+  .hero-stage{position:relative;display:block}
+  .hero-bg{inset:-22px -34px 0 -34px}
+  .hero-scene{--px:.5;--py:1}
+  .hero-scene .plant{width:min(25%,60cqh)}
+  .hero-side{display:none}
+  .grow-pill{z-index:3;position:absolute;right:0;bottom:14px;display:flex!important;align-items:center;gap:8px;white-space:nowrap;color:#fff;font-size:12.5px;background:rgba(10,18,14,.55);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,.18);border-radius:999px;padding:6px 14px}
+  .grow-pill span{opacity:.85}
+  .grow{background:rgba(18,30,24,.42);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.18);border-radius:18px;padding:14px 18px}
+  .home-view .hero-quote{margin:20px 0 0!important;max-width:360px!important;padding:16px 18px 10px!important;font-size:15.5px!important}
+}
+@media(prefers-reduced-motion:reduce){.plant-sway{animation:none}}
 </style>
 </head>
 <body>
@@ -711,9 +748,9 @@ main#app.full{padding-bottom:calc(env(safe-area-inset-bottom,0px) + 32px)}
 <nav class="tabbar" id="tabbar" aria-label="Разделы"></nav>
 <div class="toast" id="toast" hidden></div>
 <div class="modal" id="modal" hidden></div>
-<script src="plan.js?v=4.4"></script>
-<script src="courses.js?v=4.4"></script>
-<script src="app.js?v=4.4"></script>
+<script src="plan.js?v=4.5"></script>
+<script src="courses.js?v=4.5"></script>
+<script src="app.js?v=4.5"></script>
 <script>
 if ('serviceWorker' in navigator) {
   var hadController = !!navigator.serviceWorker.controller;
