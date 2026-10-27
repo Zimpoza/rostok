@@ -750,6 +750,67 @@ main#app.full{padding-bottom:calc(env(safe-area-inset-bottom,0px) + 32px)}
 .rank-symbol svg{width:26px;height:26px}.rank-label{font-size:10px;color:var(--mute);letter-spacing:.09em;text-transform:uppercase}.rank-main h2{font-size:23px;line-height:1.25;margin:3px 0 5px;letter-spacing:-.03em}.rank-main p{font-size:12px;color:var(--mute);margin:0}.rank-meter{flex:1;min-width:230px;max-width:420px}.rank-meter-label{display:flex;flex-wrap:wrap;justify-content:space-between;gap:7px;font-size:11px;margin-bottom:9px}.rank-next{color:var(--mute)}.rank-track{height:6px;background:var(--soft);border-radius:5px;overflow:hidden}.rank-track i{height:100%;display:block;background:var(--done);border-radius:inherit}.rank-details{flex-basis:100%;border-top:1px solid var(--line);font-size:12px}.rank-details summary{min-height:44px;padding:12px 0 0;color:var(--mute);cursor:pointer}.rank-details summary::after{content:' +';color:var(--done)}.rank-details[open] summary::after{content:' −'}.rank-details>div{max-width:650px}.rank-details p{color:var(--mute);line-height:1.7}.rank-ladder{list-style:none;margin:14px 0;padding:0;display:grid;grid-template-columns:1fr 1fr;gap:7px}.rank-ladder li{display:flex;justify-content:space-between;gap:10px;padding:10px 12px;background:var(--soft);border-radius:9px}.rank-ladder li[aria-current]{outline:1px solid var(--done);font-weight:600}.rank-ladder b{white-space:nowrap;font-size:10px;color:var(--mute)}
 @media(max-width:767px){.rank-card{margin:0;padding:16px;gap:14px;border-radius:13px}.rank-main{flex-basis:100%;gap:10px}.rank-symbol{width:36px;height:36px}.rank-main h2{font-size:20px}.rank-main p{font-size:11px}.rank-label{font-size:8px}.rank-meter{min-width:0;max-width:none;flex-basis:100%}.rank-meter-label{font-size:10px}.rank-ladder{grid-template-columns:1fr}.rank-details summary{font-size:11px}.grow-t b{overflow-wrap:anywhere}}
 @media(prefers-reduced-motion:reduce){.plant-leaf,.plant-sway{animation:none!important}}
+/* 4.7 — composition from the approved dashboard, with a living botanical plant. */
+.home-view .hero{isolation:isolate}
+.hero-bg{container-type:normal;inset:0!important;overflow:hidden}
+.hero-scene{position:absolute;inset:0;width:100%;height:100%;aspect-ratio:auto;left:0;top:0;background:url(growth-landscape.png) center/cover no-repeat}
+.hero-scene .plant{left:59%;bottom:0;width:290px;height:290px;aspect-ratio:1;transform:translateX(-50%);filter:drop-shadow(0 6px 9px #07180b66)}
+.plant-sway{transform-origin:200px 365px;animation:plantsway 7s ease-in-out infinite}
+@keyframes plantsway{0%,100%{transform:rotate(-.7deg)}50%{transform:rotate(.9deg)}}
+.home-view .hero-bg::after{background:linear-gradient(90deg,#04110ccc,transparent 70%),linear-gradient(0deg,#071610aa,transparent 60%);pointer-events:none}
+.growth-preview{margin-top:20px;padding:16px;background:var(--soft);border-radius:12px}
+.growth-preview h3{font-size:14px;margin:0}.preview-tree{height:230px;background:radial-gradient(ellipse at bottom,#415d30,transparent 70%)}
+.preview-tree .plant{display:block;width:100%;height:100%}.growth-preview label{display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px}.growth-preview input{width:100%;accent-color:var(--done);min-height:44px}.growth-preview p{margin-bottom:0}
+.rank-details>div{max-width:none}.rank-main h2{font-size:22px}.rank-details summary{padding:12px 0;min-height:44px}
+@media(min-width:768px){
+ main:not(.full){padding-top:18px}
+ .home-view{gap:0}
+ .home-view .hero{padding:18px 28px 24px;border-radius:18px 18px 0 0}
+ .hero-stage{position:static;min-height:270px}
+ .hero-top{position:relative}
+ .hero-main{position:relative;min-height:230px;margin-top:20px;display:flex;align-items:flex-start}
+ .home-view .hero-copy{width:45%;max-width:400px}
+ .home-view .hero-title{font-size:44px}
+ .home-view .hero-tag{font-size:19px;margin-top:12px}
+ .home-view .hero-sub{font-size:14px;max-width:300px}
+ .home-view .hero-btn{font-size:13px;min-height:44px;margin-top:18px;border-radius:10px;padding:0 18px}
+ .home-view .hero-quote{position:absolute;right:0;top:26px;width:23%;max-width:230px!important;margin:0!important;padding:18px!important;font-size:14px!important;line-height:1.6;border-radius:12px}
+ .hero-scene .plant{bottom:137px;left:59%;width:280px;height:280px}
+ .hero .dirs{margin-top:26px;gap:12px}
+ .dir{min-height:125px;padding:13px 13px 30px;border-radius:12px;background:linear-gradient(140deg,color-mix(in srgb,var(--cc) 17%,#0b2119),#0b171be8)}
+ .dir b{font-size:13px}.dir span{font-size:11px}.dir-ic{width:34px;height:34px;border-radius:8px;margin-bottom:4px}.dir-ic svg{width:20px;height:20px}
+ .grow-pill{right:28px;bottom:160px;max-width:55%;font-size:10px;padding:5px 10px;background:#07170cb8;gap:7px}
+ .home-view .today-panel{padding:22px;background:var(--card);border:1px solid var(--line);border-radius:0 0 18px 18px;margin-bottom:18px}
+ .tp-head h2{font-size:23px}.tp-box{background:var(--soft);border-color:transparent;border-radius:12px;padding:14px}.tp-list{padding:4px 12px}.tp-list .t-label,.tp-list .t-min{font-size:12px}.tp-list .task{gap:8px;min-height:44px}.tp-box h3{font-size:13px}.tp-cols{gap:12px;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr) minmax(0,1fr)}
+ .tp-overall .overall-row{flex-wrap:wrap}.legend-list{font-size:11px}.tp-overall .donut{margin:auto}.rank-card{padding:16px 20px}
+ .ccard{border-radius:12px}.cc-photo{image-rendering:auto}.lesson-main{border-radius:14px}.pd-head{border-radius:14px}
+}
+@media(min-width:1200px){nav#tabbar{width:210px;padding:20px 12px}main:not(.full){margin-left:210px;padding-left:22px;padding-right:22px}.side-brand{font-size:22px}.home-view .hero{padding-left:28px;padding-right:28px}.hero-stage{min-height:265px}}
+@media(min-width:1600px){.hero-scene .plant{width:330px;height:330px;bottom:130px}.home-view .hero-title{font-size:52px}.hero-stage{min-height:300px}}
+@media(min-width:768px) and (max-width:1199px){.home-view .hero-copy{width:53%}.home-view .hero-quote{width:25%;font-size:12px!important}.home-view .hero-title{font-size:38px}.hero-scene .plant{left:66%;bottom:245px;width:240px;height:240px}.grow-pill{bottom:265px}.tp-cols{grid-template-columns:1fr 1fr}.tp-list{grid-column:1/-1}.hero-stage{min-height:260px}}
+@media(max-width:767px){
+ main:not(.full){padding:14px 18px 105px}.home-view{gap:16px}
+ .m-head{padding:2px 0 0}.m-head .brand{font-size:20px}.m-head .brand svg{width:25px;height:25px}
+ .home-view .hero{margin:0 -18px;min-height:204px;height:204px;padding:18px 20px;display:block;border-radius:0;background:#071610}
+ .hero-stage{display:block;height:100%;position:static}.hero-bg{inset:0!important}.hero-scene{background-position:62% center}
+ .hero-scene .plant{left:72%;bottom:6px;width:230px;height:230px;transform:translateX(-50%)}
+ .home-view .hero-bg::after{background:linear-gradient(90deg,#04110ca6,transparent 80%),linear-gradient(0deg,var(--bg),transparent 65%)}
+ .home-view .hero-main{position:absolute;left:20px;bottom:18px;width:57%;margin:0;display:block}
+ .home-view .hero-copy{max-width:none;gap:0}.home-view .hero-title{font-size:25px;line-height:1.12;text-align:left;text-wrap:initial;max-width:225px}
+ .hero-side{top:12px;left:20px;right:auto;width:auto;max-width:52%}.grow{background:none;border:0;backdrop-filter:none;padding:0}.grow-k{font-size:8px;color:#c6dfbf}.grow-t b{font-size:12px}.grow-s{font-size:9px}.grow-bar{height:3px;max-width:110px;background:#ffffff25}.grow-t{gap:4px}
+ .home-view .m-date{font-size:12px;margin:0;color:var(--mute)}
+ .week-strip{margin:0}.week-strip .days{gap:4px}.wday{min-height:50px;padding:6px 0;border-radius:9px}.wday span{font-size:11px}.wday b{font-size:14px}
+ .today-panel{gap:10px}.tp-head h2{font-size:20px}.tp-head .muted{font-size:11px}.tp-head .link{font-size:11px}.task{min-height:49px;padding:9px 0;gap:10px}.task .chk{width:23px;height:23px;min-height:23px;border-width:1px}.t-label{font-size:12px}.t-min{font-size:10px}.m-cta{min-height:44px;border-radius:10px;font-size:12px}
+ .rank-card{padding:14px;margin-top:2px;gap:12px}.rank-main h2{font-size:18px}.rank-main p{font-size:10px}.rank-label{font-size:8px}.rank-symbol{height:30px;width:30px}.rank-symbol svg{width:21px}.rank-details summary{font-size:11px}.rank-meter-label{font-size:10px}
+ .ccard{min-height:120px;border-radius:11px;background:#f3f4f2;color:#121c16}.cc-body{padding:13px;gap:5px}.ccard .nm{font-size:14px}.ccard .meta{font-size:10px}.ccard .cc-continue{font-size:11px}.learn-view .topbar{margin-bottom:0}
+}
+@media(prefers-reduced-motion:reduce){.plant-sway,.plant-leaf{animation:none!important}}
+
+@media(max-width:767px){.home-view .hero{margin-left:-16px;margin-right:-16px}.hero-side{top:14px;left:20px}.grow-k{display:none}.grow-t b{font-weight:500;color:#d4e5c9}.grow-s{font-size:9px}}
+@media(min-width:1200px){.tp-list{grid-row:auto;grid-column:auto}.tp-overall{grid-column:auto}.tp-overall .overall-row{gap:12px}.hero .grow-pill{bottom:190px}.hero-scene .plant{bottom:150px}}
+@media(min-width:768px) and (max-width:1199px){.tp-list{grid-row:auto}.tp-overall{grid-column:auto}}
+@media(min-width:768px) and (max-width:1500px){.tp-overall .overall-row{flex-direction:column;justify-content:center;gap:18px}.tp-overall .legend-list{width:100%;flex:0}.legend-list li span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}}
+@media(max-width:767px){.hero-scene .plant{width:205px;height:205px;bottom:0}}
 </style>
 </head>
 <body>
@@ -757,9 +818,9 @@ main#app.full{padding-bottom:calc(env(safe-area-inset-bottom,0px) + 32px)}
 <nav class="tabbar" id="tabbar" aria-label="Разделы"></nav>
 <div class="toast" id="toast" hidden></div>
 <div class="modal" id="modal" hidden></div>
-<script src="plan.js?v=4.6"></script>
-<script src="courses.js?v=4.6"></script>
-<script src="app.js?v=4.6"></script>
+<script src="plan.js?v=4.7"></script>
+<script src="courses.js?v=4.7"></script>
+<script src="app.js?v=4.7"></script>
 <script>
 if ('serviceWorker' in navigator) {
   var hadController = !!navigator.serviceWorker.controller;
