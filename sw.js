@@ -1,6 +1,6 @@
 // Офлайн-кеш. При обновлении приложения меняется номер версии.
-var C = 'rostok-v4-0';
-var F = ['./', 'index.html', 'app.js?v=4.0', 'plan.js?v=4.0', 'courses.js?v=4.0', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png', 'apple-touch-icon.png'];
+var C = 'rostok-v4-1';
+var F = ['./', 'index.html', 'app.js?v=4.1', 'plan.js?v=4.1', 'courses.js?v=4.1', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png', 'apple-touch-icon.png'];
 self.addEventListener('install', function (e) { e.waitUntil(caches.open(C).then(function (c) { return c.addAll(F); })); self.skipWaiting(); });
 self.addEventListener('activate', function (e) {
   e.waitUntil(caches.keys().then(function (k) { return Promise.all(k.filter(function (x) { return x.indexOf('rostok-') === 0 && x !== C; }).map(function (x) { return caches.delete(x); })); }));

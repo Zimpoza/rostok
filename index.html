@@ -240,7 +240,42 @@ button,a,input,textarea{touch-action:manipulation}button{min-height:44px}.btn{mi
 @media(prefers-color-scheme:dark){:root{--bg:#151D19;--card:#202B24;--ink:#F1F1E8;--mute:#A3B0A5;--line:#39463C;--soft:#2C3930;--box:#6A7D6B;--accent:#F49D72;--accent-ink:#24190F;--done:#8EC6A0;--full:#39684A;--part:#314C39;--part-ink:#E4F3E7;--hero:#304B3B;--hero-ink:#F5F2E5;--focus-ring:rgba(244,157,114,.1)}.tabbar::before{color:var(--ink)}.study-focus .btn,.week-switch button[aria-pressed=true]{background:#E0E5CF;color:#253C31;border-color:#E0E5CF}.tabbar{box-shadow:none}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
 
-.update-notice{position:fixed;z-index:9;left:16px;right:16px;top:16px;max-width:500px;margin:auto;background:var(--card);border:1px solid var(--line);box-shadow:0 8px 30px #0002;border-radius:16px;padding:16px;display:flex;align-items:center;gap:16px;font-size:13px}.update-notice .btn{margin-left:auto;flex-shrink:0}</style>
+.update-notice{position:fixed;z-index:9;left:16px;right:16px;top:16px;max-width:500px;margin:auto;background:var(--card);border:1px solid var(--line);box-shadow:0 8px 30px #0002;border-radius:16px;padding:16px;display:flex;align-items:center;gap:16px;font-size:13px}.update-notice .btn{margin-left:auto;flex-shrink:0}
+
+/* Росток 4.1 — тёмно-зелёная палитра по макету: лес, зелёный акцент, белые карточки. */
+:root{--bg:#EFF3F0;--card:#FFFFFF;--ink:#13241B;--mute:#66776D;--line:#DFE7E2;--soft:#E7EFEA;--box:#A5B4AB;--accent:#1B9E5A;--accent-ink:#fff;--done:#1B9E5A;--full:#157A46;--part:#DCF2E5;--part-ink:#15553A;--hero:#0F2D1F;--hero-ink:#F3FAF5;--focus-ring:rgba(27,158,90,.2);--leaf:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%2342D17F' d='M20 3C10 3 4 8 4 15c0 1.6.4 3 1 4 .9-4.3 3.6-7.6 8-9.5-3.2 2.6-5 5.4-5.9 9.1C8.4 19.8 9.7 20 11 20c7 0 9-7 9-17z'/%3E%3C/svg%3E")}
+.brand .brand-mark{font-size:0;padding:0;background:#0F2D1F var(--leaf) center/20px no-repeat}
+.hero,.study-focus,.week-panel{background:radial-gradient(120% 150% at 88% 0%,#21683F 0%,#0F2D1F 52%,#0A2016 100%)}
+.study-focus::after,.week-panel::after{content:'';position:absolute;right:-18px;bottom:-34px;width:230px;height:230px;background:var(--leaf) center/contain no-repeat;opacity:.13;pointer-events:none;transform:rotate(-8deg)}
+.week-panel{position:relative;overflow:hidden}
+.study-focus .btn,.week-switch button[aria-pressed=true]{background:#4ADE80;border-color:#4ADE80;color:#06210F}
+.study-focus .btn{font-weight:600;box-shadow:0 6px 18px rgba(74,222,128,.25)}
+.study-focus>*{position:relative;z-index:1}
+.hero .btn.primary{background:#4ADE80;border-color:#4ADE80;color:#06210F}
+.eyebrow{color:var(--accent)}
+.card,.ccard,.day-plan,.mode-card,.backup-hint{box-shadow:0 1px 2px rgba(15,45,31,.05),0 8px 24px rgba(15,45,31,.04)}
+.go,.back,.save-indicator+*{color:var(--accent)}
+.task .chk{border-color:var(--box);background:var(--card)}
+.day-progress{background:#E1F1E8}
+.progress-value{color:var(--full)}
+.stage.active{border-color:var(--accent);color:var(--accent)}
+.tab[aria-current=page]{background:var(--part);color:var(--full)}
+.tabbar{border-color:var(--line)}
+@media(min-width:1100px){
+.tabbar{left:0;top:0;bottom:0;width:240px;max-width:none;margin:0;border:0;border-radius:0;background:#0B1F16;box-shadow:none}
+.tabbar::before{content:'ROSTOK';padding:30px 26px 38px;font-size:22px;font-weight:700;letter-spacing:.04em;color:#fff;background:var(--leaf) 26px 31px/22px no-repeat;padding-left:56px}
+.tabbar::after{color:#7C9486}
+.tabbar .in{padding:0 14px}
+.tab{color:#A5B9AD;height:50px;font-size:13px}
+.tab:hover{background:#12301F;color:#fff}
+.tab[aria-current=page]{background:#143B28;color:#4ADE80}
+main:not(.full){margin-left:240px;max-width:1240px}
+.page-head .brand{display:none}
+.page-head{justify-content:flex-end}
+}
+@media(prefers-color-scheme:dark){:root{--bg:#0A1711;--card:#12261B;--ink:#EAF4EE;--mute:#93A89B;--line:#24382C;--soft:#1A3024;--box:#4E6A5A;--accent:#4ADE80;--accent-ink:#06210F;--done:#4ADE80;--full:#4ADE80;--part:#1B4A31;--part-ink:#D7F5E2;--hero:#0F2D1F;--hero-ink:#F3FAF5;--focus-ring:rgba(74,222,128,.15)}
+.day-progress{background:var(--soft)}.card,.ccard,.day-plan,.mode-card,.backup-hint{box-shadow:none}.tab[aria-current=page]{background:#1B4A31;color:#4ADE80}}
+</style>
 </head>
 <body>
 <main id="app" aria-live="polite"></main>
@@ -251,9 +286,9 @@ button,a,input,textarea{touch-action:manipulation}button{min-height:44px}.btn{mi
 </div></nav>
 <div class="toast" id="toast" hidden></div>
 <div class="modal" id="modal" hidden></div>
-<script src="plan.js?v=4.0"></script>
-<script src="courses.js?v=4.0"></script>
-<script src="app.js?v=4.0"></script>
+<script src="plan.js?v=4.1"></script>
+<script src="courses.js?v=4.1"></script>
+<script src="app.js?v=4.1"></script>
 <script>
 if ('serviceWorker' in navigator) {
   var hadController = !!navigator.serviceWorker.controller;
